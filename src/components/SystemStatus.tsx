@@ -56,9 +56,6 @@ const StatusItem = ({ icon, label, value, subValue, status = 'info', progress, t
 
 export const SystemStatus = ({ 
   isVpnConnected, 
-  batteryLevel: propsBatteryLevel, 
-  isCharging: propsIsCharging, 
-  wifiSignal,
   theme,
   setTheme,
   user,
@@ -67,9 +64,6 @@ export const SystemStatus = ({
   handleLogout
 }: {
   isVpnConnected: boolean;
-  batteryLevel: number;
-  isCharging: boolean;
-  wifiSignal: number;
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
   user: User | null;
@@ -173,8 +167,9 @@ export const SystemStatus = ({
     return () => clearInterval(timer);
   }, [startTime]);
 
-  const displayBattery = realBatteryLevel !== null ? realBatteryLevel : propsBatteryLevel;
-  const displayCharging = realIsCharging !== null ? realIsCharging : propsIsCharging;
+  const displayBattery = realBatteryLevel !== null ? realBatteryLevel : 100;
+  const displayCharging = realIsCharging !== null ? realIsCharging : false;
+  const displayWifiSignal = 3;
   
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -292,10 +287,10 @@ export const SystemStatus = ({
           <StatusItem
             icon={<Wifi className="w-6 h-6" />}
             label="Network"
-            value={networkType !== 'Unknown' ? networkType : (wifiSignal === 3 ? "Excellent" : wifiSignal === 2 ? "Good" : "Weak")}
+            value={networkType !== 'Unknown' ? networkType : (displayWifiSignal === 3 ? "Excellent" : displayWifiSignal === 2 ? "Good" : "Weak")}
             subValue={downlink ? `${downlink} Mbps ↓` : "Connected"}
             status="success"
-            progress={downlink ? Math.min((downlink / 100) * 100, 100) : (wifiSignal / 3) * 100}
+            progress={downlink ? Math.min((downlink / 100) * 100, 100) : (displayWifiSignal / 3) * 100}
             theme={theme}
           />
           <StatusItem

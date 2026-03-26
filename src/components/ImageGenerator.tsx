@@ -290,6 +290,7 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
             mimeType: sourceImage.mimeType
           }
         });
+        finalPrompt = `${finalPrompt}. CRITICAL INSTRUCTION: Preserve the original face, facial features, and subject identity perfectly. Do not alter or change the face of the person in the image.`;
       }
       
       parts.push({ text: finalPrompt || 'Enhance this image' });
@@ -508,116 +509,129 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
               className="overflow-hidden"
             >
               <Card className="p-4 glass-card border-white/10 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-white/80 flex items-center">
-                    <Sparkles className="w-4 h-4 mr-2 text-indigo-400" />
-                    Generation Quality & Realism
-                  </h3>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">Resolution</label>
-                    <div className="flex bg-black/40 rounded-xl p-1 border border-white/5">
-                      {(['1K', '2K', '4K'] as const).map((size) => (
-                        <button
-                          key={size}
-                          type="button"
-                          onClick={() => setImageSize(size)}
-                          className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${imageSize === size ? 'bg-indigo-500 text-white shadow-md' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
-                        >
-                          {size}
-                        </button>
-                      ))}
+                <details className="group" open>
+                  <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-medium text-white/80">
+                    <div className="flex items-center">
+                      <Sparkles className="w-4 h-4 mr-2 text-indigo-400" />
+                      Generation Settings
                     </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">Aspect Ratio</label>
-                    <div className="flex bg-black/40 rounded-xl p-1 border border-white/5 overflow-x-auto hide-scrollbar">
-                      {(['1:1', '16:9', '9:16', '4:3', '3:4'] as const).map((ratio) => (
-                        <button
-                          key={ratio}
-                          type="button"
-                          onClick={() => setAspectRatio(ratio)}
-                          className={`flex-1 min-w-[48px] py-2 text-xs font-medium rounded-lg transition-all ${aspectRatio === ratio ? 'bg-indigo-500 text-white shadow-md' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
-                        >
-                          {ratio}
-                        </button>
-                      ))}
+                    <span className="transition group-open:rotate-180">
+                      <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                    </span>
+                  </summary>
+                  <div className="pt-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">Resolution</label>
+                        <div className="flex bg-black/40 rounded-xl p-1 border border-white/5">
+                          {(['1K', '2K', '4K'] as const).map((size) => (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() => setImageSize(size)}
+                              className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${imageSize === size ? 'bg-indigo-500 text-white shadow-md' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">Aspect Ratio</label>
+                        <div className="flex bg-black/40 rounded-xl p-1 border border-white/5 overflow-x-auto hide-scrollbar">
+                          {(['1:1', '16:9', '9:16', '4:3', '3:4'] as const).map((ratio) => (
+                            <button
+                              key={ratio}
+                              type="button"
+                              onClick={() => setAspectRatio(ratio)}
+                              className={`flex-1 min-w-[48px] py-2 text-xs font-medium rounded-lg transition-all ${aspectRatio === ratio ? 'bg-indigo-500 text-white shadow-md' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                            >
+                              {ratio}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <label className="text-sm font-medium text-white">Photorealistic Enhancement</label>
-                    <p className="text-xs text-white/50">Automatically appends high-quality modifiers to your prompt</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setPhotorealistic(!photorealistic)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${photorealistic ? 'bg-indigo-500' : 'bg-white/10'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${photorealistic ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                </div>
-
-                <div className="pt-4 border-t border-white/5 space-y-4">
-                  <h3 className="text-sm font-medium text-white/80 flex items-center">
-                    <Palette className="w-4 h-4 mr-2 text-indigo-400" />
-                    Color Balance (Tint)
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-red-400/70 uppercase tracking-wider">Red</label>
-                        <span className="text-xs text-white/70">{red > 0 ? `+${red}` : red}</span>
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="text-sm font-medium text-white">Photorealistic Enhancement</label>
+                        <p className="text-xs text-white/50">Automatically appends high-quality modifiers to your prompt</p>
                       </div>
-                      <input 
-                        type="range" min="-100" max="100" value={red} 
-                        onChange={(e) => setRed(parseInt(e.target.value))}
-                        className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-green-400/70 uppercase tracking-wider">Green</label>
-                        <span className="text-xs text-white/70">{green > 0 ? `+${green}` : green}</span>
-                      </div>
-                      <input 
-                        type="range" min="-100" max="100" value={green} 
-                        onChange={(e) => setGreen(parseInt(e.target.value))}
-                        className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-green-500"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-blue-400/70 uppercase tracking-wider">Blue</label>
-                        <span className="text-xs text-white/70">{blue > 0 ? `+${blue}` : blue}</span>
-                      </div>
-                      <input 
-                        type="range" min="-100" max="100" value={blue} 
-                        onChange={(e) => setBlue(parseInt(e.target.value))}
-                        className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                      />
-                    </div>
-                  </div>
-                  {(imageUrl || sourceImage) && (
-                    <div className="flex justify-end pt-2">
-                      <Button
+                      <button
                         type="button"
-                        size="sm"
-                        onClick={() => processImage('filter')}
-                        disabled={isProcessing}
-                        className="bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs h-8"
+                        onClick={() => setPhotorealistic(!photorealistic)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${photorealistic ? 'bg-indigo-500' : 'bg-white/10'}`}
                       >
-                        {isProcessing ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Palette className="w-3 h-3 mr-1.5" />}
-                        Apply Tint to Image
-                      </Button>
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${photorealistic ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                </details>
+
+                <details className="group pt-4 border-t border-white/5">
+                  <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-medium text-white/80">
+                    <div className="flex items-center">
+                      <Palette className="w-4 h-4 mr-2 text-indigo-400" />
+                      Color Balance (Tint)
+                    </div>
+                    <span className="transition group-open:rotate-180">
+                      <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                    </span>
+                  </summary>
+                  <div className="pt-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-3 p-3 bg-red-500/10 rounded-xl border border-red-500/20">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-red-400 uppercase tracking-wider">Red Tint</label>
+                          <span className="text-xs font-mono text-white/90 bg-black/30 px-2 py-0.5 rounded">{red > 0 ? `+${red}` : red}</span>
+                        </div>
+                        <input 
+                          type="range" min="-100" max="100" value={red} 
+                          onChange={(e) => setRed(parseInt(e.target.value))}
+                          className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer accent-red-500"
+                        />
+                      </div>
+                      <div className="space-y-3 p-3 bg-green-500/10 rounded-xl border border-green-500/20">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-green-400 uppercase tracking-wider">Green Tint</label>
+                          <span className="text-xs font-mono text-white/90 bg-black/30 px-2 py-0.5 rounded">{green > 0 ? `+${green}` : green}</span>
+                        </div>
+                        <input 
+                          type="range" min="-100" max="100" value={green} 
+                          onChange={(e) => setGreen(parseInt(e.target.value))}
+                          className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer accent-green-500"
+                        />
+                      </div>
+                      <div className="space-y-3 p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-blue-400 uppercase tracking-wider">Blue Tint</label>
+                          <span className="text-xs font-mono text-white/90 bg-black/30 px-2 py-0.5 rounded">{blue > 0 ? `+${blue}` : blue}</span>
+                        </div>
+                        <input 
+                          type="range" min="-100" max="100" value={blue} 
+                          onChange={(e) => setBlue(parseInt(e.target.value))}
+                          className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        />
+                      </div>
+                    </div>
+                    {(imageUrl || sourceImage) && (
+                      <div className="flex justify-end pt-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => processImage('filter')}
+                          disabled={isProcessing}
+                          className="bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs h-8"
+                        >
+                          {isProcessing ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Palette className="w-3 h-3 mr-1.5" />}
+                          Apply Tint to Image
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </details>
               </Card>
             </motion.div>
           )}

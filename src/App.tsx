@@ -1,25 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { Chatbot } from './components/Chatbot';
-import { ImageGenerator } from './components/ImageGenerator';
-import { VideoGenerator } from './components/VideoGenerator';
-import { VoiceChat } from './components/VoiceChat';
-import { Vpn } from './components/Vpn';
-import { Browser } from './components/Browser';
-import { VideoDownloader } from './components/VideoDownloader';
-import { FbAutoLike } from './components/FbAutoLike';
-import { BuildApk } from './components/BuildApk';
-import { ArenaAi } from './components/ArenaAi';
-import { CardGenerator } from './components/CardGenerator';
-import { TempMail } from './components/TempMail';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Home } from './components/Home';
-import { SystemStatus } from './components/SystemStatus';
+import { StatusBar } from './components/StatusBar';
 import { UploadedFile, ChatMessage } from './types';
 import { initChatSession, sendChatMessage, restoreChatHistory } from './services/gemini';
-import { Menu, ChevronRight, Share, Battery, Wifi, Signal, Image as ImageIcon, Video, Mic, Sparkles, Shield, Globe, DownloadCloud, ThumbsUp, Smartphone, Home as HomeIcon, ArrowLeft, LogOut, User as UserIcon, Swords, Activity, Sun, Moon, CreditCard, Mail } from 'lucide-react';
+import { Menu, ChevronRight, Share, Battery, Wifi, Signal, Image as ImageIcon, Video, Mic, Sparkles, Shield, Globe, DownloadCloud, ThumbsUp, Smartphone, Home as HomeIcon, ArrowLeft, LogOut, User as UserIcon, Swords, Activity, Sun, Moon, CreditCard, Mail, Loader2, MessageCircle, Phone, Folder } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, signInWithGoogle, logout, onAuthStateChanged, User } from './firebase';
+import { populateDummyData } from './lib/populate';
 
-type Tab = 'home' | 'image' | 'video' | 'voice' | 'vpn' | 'browser' | 'downloader' | 'fb-autolike' | 'build-apk' | 'arena-ai' | 'status' | 'card-gen' | 'temp-mail';
+const Chatbot = lazy(() => import('./components/Chatbot').then(m => ({ default: m.Chatbot })));
+const ImageGenerator = lazy(() => import('./components/ImageGenerator').then(m => ({ default: m.ImageGenerator })));
+const VideoGenerator = lazy(() => import('./components/VideoGenerator').then(m => ({ default: m.VideoGenerator })));
+const VoiceChat = lazy(() => import('./components/VoiceChat').then(m => ({ default: m.VoiceChat })));
+const Vpn = lazy(() => import('./components/Vpn').then(m => ({ default: m.Vpn })));
+const Browser = lazy(() => import('./components/Browser').then(m => ({ default: m.Browser })));
+const VideoDownloader = lazy(() => import('./components/VideoDownloader').then(m => ({ default: m.VideoDownloader })));
+const FbAutoLike = lazy(() => import('./components/FbAutoLike').then(m => ({ default: m.FbAutoLike })));
+const BuildApk = lazy(() => import('./components/BuildApk').then(m => ({ default: m.BuildApk })));
+const ArenaAi = lazy(() => import('./components/ArenaAi').then(m => ({ default: m.ArenaAi })));
+const CardGenerator = lazy(() => import('./components/CardGenerator').then(m => ({ default: m.CardGenerator })));
+const TempMail = lazy(() => import('./components/TempMail').then(m => ({ default: m.TempMail })));
+const TempNumber = lazy(() => import('./components/TempNumber').then(m => ({ default: m.TempNumber })));
+const SystemStatus = lazy(() => import('./components/SystemStatus').then(m => ({ default: m.SystemStatus })));
+const WhatsApp = lazy(() => import('./components/WhatsApp').then(m => ({ default: m.WhatsApp })));
+const FileManager = lazy(() => import('./components/FileManager').then(m => ({ default: m.FileManager })));
+const Gallery = lazy(() => import('./components/Gallery').then(m => ({ default: m.Gallery })));
+
+type Tab = 'home' | 'image' | 'video' | 'voice' | 'vpn' | 'browser' | 'downloader' | 'fb-autolike' | 'build-apk' | 'arena-ai' | 'status' | 'card-gen' | 'temp-mail' | 'temp-number' | 'whatsapp' | 'file-manager' | 'gallery';
 
 const APPS = [
   { id: 'image', name: 'Image', icon: ImageIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
@@ -34,10 +41,14 @@ const APPS = [
   { id: 'fb-autolike', name: 'FB Liker', icon: ThumbsUp, color: 'text-blue-500', bg: 'bg-blue-600/20' },
   { id: 'build-apk', name: 'APK Builder', icon: Smartphone, color: 'text-green-400', bg: 'bg-green-500/20' },
   { id: 'temp-mail', name: 'Temp Mail', icon: Mail, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
+  { id: 'temp-number', name: 'Temp Number', icon: Phone, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
+  { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
+  { id: 'file-manager', name: 'Files', icon: Folder, color: 'text-blue-400', bg: 'bg-blue-500/20' },
+  { id: 'gallery', name: 'Photos', icon: ImageIcon, color: 'text-purple-400', bg: 'bg-purple-500/20' },
 ];
 
 const DOCK_APPS = [
-  { id: 'voice', name: 'Voice', icon: Mic, color: 'text-pink-400', bg: 'bg-pink-500/20' },
+  { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
   { id: 'browser', name: 'Browser', icon: Globe, color: 'text-blue-400', bg: 'bg-blue-500/20' },
   { id: 'arena-ai', name: 'Arena AI', icon: Swords, color: 'text-orange-400', bg: 'bg-orange-500/20' },
   { id: 'status', name: 'Settings', icon: Activity, color: 'text-zinc-400', bg: 'bg-zinc-500/20' },
@@ -70,10 +81,6 @@ export default function App() {
   });
   const [isTyping, setIsTyping] = useState(false);
   const [isVpnConnected, setIsVpnConnected] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [batteryLevel, setBatteryLevel] = useState(100);
-  const [isCharging, setIsCharging] = useState(false);
-  const [wifiSignal, setWifiSignal] = useState(3); // 0-3
 
   const [isDynamicIslandExpanded, setIsDynamicIslandExpanded] = useState(false);
   const [dynamicIslandContent, setDynamicIslandContent] = useState<React.ReactNode>(null);
@@ -99,49 +106,15 @@ export default function App() {
     }
   }, [isDynamicIslandExpanded]);
 
-  // Real-time Clock
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 10000); // Update every 10 seconds
-    return () => clearInterval(timer);
-  }, []);
-
-  // Battery Status
-  useEffect(() => {
-    if ('getBattery' in navigator) {
-      (navigator as any).getBattery().then((battery: any) => {
-        const updateBattery = () => {
-          setBatteryLevel(Math.round(battery.level * 100));
-          setIsCharging(battery.charging);
-        };
-        updateBattery();
-        battery.addEventListener('levelchange', updateBattery);
-        battery.addEventListener('chargingchange', updateBattery);
-        return () => {
-          battery.removeEventListener('levelchange', updateBattery);
-          battery.removeEventListener('chargingchange', updateBattery);
-        };
-      });
-    }
-  }, []);
-
-  // Simulated Wifi Signal Fluctuations
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setWifiSignal(prev => {
-        const change = Math.random() > 0.8 ? (Math.random() > 0.5 ? 1 : -1) : 0;
-        return Math.max(1, Math.min(3, prev + change));
-      });
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
     });
+    
+    // Populate dummy data for File Manager and Gallery
+    populateDummyData();
+    
     return () => unsubscribe();
   }, []);
 
@@ -348,47 +321,14 @@ export default function App() {
       </div>
 
       {/* iOS Status Bar */}
-      <div className="absolute top-2 left-0 right-0 h-[36px] z-[60] flex items-center justify-between px-8 pointer-events-none">
-        <div className={`text-[14px] font-bold tracking-tight flex items-center space-x-1 ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>
-          <span>{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
-          {isVpnConnected && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-indigo-500 text-white text-[9px] px-1.5 py-0.5 rounded-md font-black tracking-tighter ml-1 shadow-lg"
-            >
-              VPN
-            </motion.div>
-          )}
-        </div>
-        
-        <div className={`flex items-center space-x-2 ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>
-          <Signal className={`w-4 h-4 ${wifiSignal < 2 ? 'opacity-50' : 'opacity-100'}`} />
-          <Wifi className={`w-4 h-4 ${wifiSignal < 3 ? 'opacity-70' : 'opacity-100'}`} />
-          <div className={`flex items-center space-x-1 px-2 py-0.5 rounded-full border ${theme === 'light' ? 'bg-black/5 border-black/10' : 'bg-white/10 backdrop-blur-md border-white/10'}`}>
-            <span className="text-[11px] font-bold">{batteryLevel}%</span>
-            <div className={`w-6 h-3 border rounded-[4px] p-[1px] relative ${theme === 'light' ? 'border-zinc-400' : 'border-white/30'}`}>
-              <div 
-                className={`h-full rounded-[2px] transition-all duration-500 ${batteryLevel < 20 ? 'bg-red-500' : (isCharging ? 'bg-green-400' : (theme === 'light' ? 'bg-zinc-800' : 'bg-white'))}`} 
-                style={{ width: `${batteryLevel}%` }} 
-              />
-              <div className={`absolute -right-1 top-1/2 -translate-y-1/2 w-0.5 h-1.5 rounded-r-sm ${theme === 'light' ? 'bg-zinc-400' : 'bg-white/30'}`} />
-              {isCharging && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${theme === 'light' ? 'bg-white' : 'bg-zinc-900'}`} />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <StatusBar theme={theme} isVpnConnected={isVpnConnected} />
 
       {/* Top Navigation Bar - Removed for iOS look */}
       
       {/* Sidebar - Removed for iOS look */}
 
       {/* Main Content */}
-      <div className={`flex flex-1 overflow-hidden relative z-10 ${activeTab !== 'home' ? 'pt-12' : ''}`}>
+      <div className={`flex flex-1 overflow-hidden relative z-10 ${activeTab !== 'home' ? 'pt-12 pb-[100px]' : ''}`}>
         <AnimatePresence mode="wait">
           {activeTab === 'home' ? (
             <motion.div
@@ -411,29 +351,32 @@ export default function App() {
               className="h-full w-full bg-black/40 backdrop-blur-xl rounded-t-[2.5rem] border-t border-white/10 overflow-hidden flex flex-col"
             >
               <div className="flex-1 overflow-y-auto relative">
-                {activeTab === 'image' && <ImageGenerator isVpnConnected={isVpnConnected} />}
-                {activeTab === 'video' && <VideoGenerator isVpnConnected={isVpnConnected} />}
-                {activeTab === 'voice' && <VoiceChat isVpnConnected={isVpnConnected} />}
-                {activeTab === 'vpn' && <Vpn isConnected={isVpnConnected} setIsConnected={setIsVpnConnected} />}
-                {activeTab === 'browser' && <Browser isVpnConnected={isVpnConnected} setIsVpnConnected={setIsVpnConnected} />}
-                {activeTab === 'downloader' && <VideoDownloader isVpnConnected={isVpnConnected} />}
-                {activeTab === 'fb-autolike' && <FbAutoLike isVpnConnected={isVpnConnected} />}
-                {activeTab === 'build-apk' && <BuildApk isVpnConnected={isVpnConnected} />}
-                {activeTab === 'arena-ai' && <ArenaAi isVpnConnected={isVpnConnected} />}
-                {activeTab === 'card-gen' && <CardGenerator isVpnConnected={isVpnConnected} />}
-                {activeTab === 'temp-mail' && <TempMail isVpnConnected={isVpnConnected} />}
-                {activeTab === 'status' && <SystemStatus 
-                  isVpnConnected={isVpnConnected} 
-                  batteryLevel={batteryLevel} 
-                  isCharging={isCharging} 
-                  wifiSignal={wifiSignal} 
-                  theme={theme}
-                  setTheme={setTheme}
-                  user={user}
-                  isAuthLoading={isAuthLoading}
-                  handleSignIn={handleSignIn}
-                  handleLogout={handleLogout}
-                />}
+                <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-white/50" /></div>}>
+                  {activeTab === 'image' && <ImageGenerator isVpnConnected={isVpnConnected} />}
+                  {activeTab === 'video' && <VideoGenerator isVpnConnected={isVpnConnected} />}
+                  {activeTab === 'voice' && <VoiceChat isVpnConnected={isVpnConnected} />}
+                  {activeTab === 'vpn' && <Vpn isConnected={isVpnConnected} setIsConnected={setIsVpnConnected} />}
+                  {activeTab === 'browser' && <Browser isVpnConnected={isVpnConnected} setIsVpnConnected={setIsVpnConnected} />}
+                  {activeTab === 'downloader' && <VideoDownloader isVpnConnected={isVpnConnected} />}
+                  {activeTab === 'fb-autolike' && <FbAutoLike isVpnConnected={isVpnConnected} />}
+                  {activeTab === 'build-apk' && <BuildApk isVpnConnected={isVpnConnected} />}
+                  {activeTab === 'arena-ai' && <ArenaAi isVpnConnected={isVpnConnected} />}
+                  {activeTab === 'card-gen' && <CardGenerator isVpnConnected={isVpnConnected} />}
+                  {activeTab === 'temp-mail' && <TempMail isVpnConnected={isVpnConnected} />}
+                  {activeTab === 'temp-number' && <TempNumber isVpnConnected={isVpnConnected} />}
+                  {activeTab === 'whatsapp' && <WhatsApp />}
+                  {activeTab === 'file-manager' && <FileManager />}
+                  {activeTab === 'gallery' && <Gallery />}
+                  {activeTab === 'status' && <SystemStatus 
+                    isVpnConnected={isVpnConnected} 
+                    theme={theme}
+                    setTheme={setTheme}
+                    user={user}
+                    isAuthLoading={isAuthLoading}
+                    handleSignIn={handleSignIn}
+                    handleLogout={handleLogout}
+                  />}
+                </Suspense>
               </div>
             </motion.div>
           )}
@@ -442,51 +385,55 @@ export default function App() {
 
       {/* Chatbot (hidden in voice tab and home) */}
       {activeTab !== 'voice' && activeTab !== 'home' && (
-        <Chatbot
-          messages={chatMessages}
-          onSendMessage={handleSendMessage}
-          onClearChat={handleClearChat}
-          isTyping={isTyping}
-        />
+        <Suspense fallback={null}>
+          <Chatbot
+            messages={chatMessages}
+            onSendMessage={handleSendMessage}
+            onClearChat={handleClearChat}
+            isTyping={isTyping}
+          />
+        </Suspense>
       )}
 
       {/* Bottom Navigation Bar - iOS Pro Dock Style */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 pb-10 z-50 pointer-events-none">
-        <div className="max-w-md mx-auto glass-dock liquid-glass p-2 flex items-center justify-around pointer-events-auto ios-shadow">
-          <button 
-            onClick={() => handleNavigate('home')}
-            className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'home' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
-          >
-            <HomeIcon className="w-7 h-7" />
-          </button>
-          <button 
-            onClick={() => handleNavigate('image')}
-            className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'image' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
-          >
-            <ImageIcon className="w-7 h-7" />
-          </button>
-          <button 
-            onClick={() => handleNavigate('video')}
-            className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'video' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
-          >
-            <Video className="w-7 h-7" />
-          </button>
-          <button 
-            onClick={() => handleNavigate('voice')}
-            className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'voice' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
-          >
-            <Mic className="w-7 h-7" />
-          </button>
-          <button 
-            onClick={() => handleNavigate('status')}
-            className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'status' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
-          >
-            <Activity className="w-7 h-7" />
-          </button>
+      <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
+        <div className="max-w-md mx-auto glass-dock liquid-glass p-2 flex flex-col items-center pointer-events-auto ios-shadow rounded-t-[2.5rem] border-b-0">
+          <div className="flex items-center justify-around w-full">
+            <button 
+              onClick={() => handleNavigate('home')}
+              className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'home' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
+            >
+              <HomeIcon className="w-7 h-7" />
+            </button>
+            <button 
+              onClick={() => handleNavigate('image')}
+              className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'image' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
+            >
+              <ImageIcon className="w-7 h-7" />
+            </button>
+            <button 
+              onClick={() => handleNavigate('video')}
+              className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'video' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
+            >
+              <Video className="w-7 h-7" />
+            </button>
+            <button 
+              onClick={() => handleNavigate('voice')}
+              className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'voice' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
+            >
+              <Mic className="w-7 h-7" />
+            </button>
+            <button 
+              onClick={() => handleNavigate('status')}
+              className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'status' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
+            >
+              <Activity className="w-7 h-7" />
+            </button>
+          </div>
+          
+          {/* Home Indicator */}
+          <div className={`w-36 h-1.5 rounded-full mt-3 mb-1 ${theme === 'light' ? 'bg-zinc-800/30' : 'bg-white/20'}`} />
         </div>
-        
-        {/* Home Indicator */}
-        <div className={`w-36 h-1.5 rounded-full mx-auto mt-6 ${theme === 'light' ? 'bg-zinc-800/30' : 'bg-white/20'}`} />
       </div>
     </div>
   );

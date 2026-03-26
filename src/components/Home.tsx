@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Image as ImageIcon, Video, Mic, Shield, Globe, DownloadCloud, ThumbsUp, Smartphone, Swords, Activity, CreditCard, Mail } from 'lucide-react';
+import { Sparkles, Image as ImageIcon, Video, Mic, Shield, Globe, DownloadCloud, ThumbsUp, Smartphone, Swords, Activity, CreditCard, Mail, MessageCircle, Phone, Folder } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface HomeProps {
@@ -20,10 +20,14 @@ export function Home({ onNavigate }: HomeProps) {
     { id: 'fb-autolike', name: 'FB Liker', icon: ThumbsUp, color: 'text-blue-500', bg: 'bg-blue-600/20' },
     { id: 'build-apk', name: 'APK Builder', icon: Smartphone, color: 'text-green-400', bg: 'bg-green-500/20' },
     { id: 'temp-mail', name: 'Temp Mail', icon: Mail, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
+    { id: 'temp-number', name: 'Temp Number', icon: Phone, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
+    { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
+    { id: 'file-manager', name: 'Files', icon: Folder, color: 'text-blue-400', bg: 'bg-blue-500/20' },
+    { id: 'gallery', name: 'Photos', icon: ImageIcon, color: 'text-purple-400', bg: 'bg-purple-500/20' },
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 pt-24 pb-48 relative z-10 custom-scrollbar">
+    <div className="flex-1 overflow-y-auto p-6 pt-24 pb-32 relative z-10 custom-scrollbar">
       <div className="max-w-md mx-auto">
         {/* App Grid - iOS Style */}
         <div className="grid grid-cols-4 gap-x-4 gap-y-8 mt-8">

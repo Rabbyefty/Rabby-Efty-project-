@@ -25,18 +25,25 @@ export function TempMail({ isVpnConnected }: TempMailProps) {
   const [loadingMessage, setLoadingMessage] = useState(false);
 
   const fetchWithFallback = async (url: string) => {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Network response was not ok');
-      return await res.json();
-    } catch (err) {
-      console.warn('Direct fetch failed, trying proxy...', err);
-      // Fallback to a CORS proxy if direct fetch fails (e.g., due to adblockers or network restrictions)
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error('Proxy response was not ok');
-      return await res.json();
+    const proxies = [
+      '', // Try direct fetch first
+      'https://api.allorigins.win/raw?url=',
+      'https://corsproxy.io/?',
+      'https://api.codetabs.com/v1/proxy?quest='
+    ];
+
+    let lastError;
+    for (const proxy of proxies) {
+      try {
+        const fetchUrl = proxy ? `${proxy}${encodeURIComponent(url)}` : url;
+        const res = await fetch(fetchUrl);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return await res.json();
+      } catch (err) {
+        lastError = err;
+      }
     }
+    throw lastError;
   };
 
   const generateEmail = async () => {
@@ -49,10 +56,11 @@ export function TempMail({ isVpnConnected }: TempMailProps) {
         setSelectedMessage(null);
       }
     } catch (err) {
-      console.error('Failed to generate email:', err);
       // Fallback to a hardcoded domain if API completely fails
       const randomString = Math.random().toString(36).substring(2, 10);
       setEmail(`${randomString}@1secmail.com`);
+      setMessages([]);
+      setSelectedMessage(null);
     } finally {
       setLoading(false);
     }
@@ -66,7 +74,7 @@ export function TempMail({ isVpnConnected }: TempMailProps) {
       const data = await fetchWithFallback(`https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain}`);
       setMessages(data || []);
     } catch (err) {
-      console.error('Failed to fetch messages:', err);
+      console.warn('Failed to fetch messages. The API or proxies might be blocked.');
     } finally {
       setLoading(false);
     }
@@ -80,7 +88,7 @@ export function TempMail({ isVpnConnected }: TempMailProps) {
       const data = await fetchWithFallback(`https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${id}`);
       setSelectedMessage(data);
     } catch (err) {
-      console.error('Failed to read message:', err);
+      console.warn('Failed to read message. The API or proxies might be blocked.');
     } finally {
       setLoadingMessage(false);
     }
@@ -138,29 +146,22 @@ export function TempMail({ isVpnConnected }: TempMailProps) {
               <Copy className="w-5 h-5" />
             </button>
           </div>
-          <div className="flex items-center justify-center space-x-4 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <button 
               onClick={generateEmail}
               disabled={loading}
-              className="flex items-center space-x-2 text-sm font-medium text-zinc-600 hover:text-indigo-600 transition-colors"
+              className="flex items-center justify-center space-x-2 w-full sm:w-auto px-6 py-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-colors shadow-md font-medium disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>Generate New</span>
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Generate New Email</span>
             </button>
             <button 
               onClick={fetchMessages}
               disabled={loading || !email}
-              className="flex items-center space-x-2 text-sm font-medium text-zinc-600 hover:text-indigo-600 transition-colors"
+              className="flex items-center justify-center space-x-2 w-full sm:w-auto px-6 py-3 bg-zinc-100 text-zinc-700 border border-zinc-200 rounded-xl hover:bg-zinc-200 transition-colors font-medium disabled:opacity-50"
             >
-              <Inbox className="w-4 h-4" />
+              <Inbox className="w-5 h-5" />
               <span>Refresh Inbox</span>
-            </button>
-            <button 
-              onClick={generateEmail}
-              className="flex items-center space-x-2 text-sm font-medium text-zinc-600 hover:text-red-600 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Generate New</span>
             </button>
           </div>
         </div>
