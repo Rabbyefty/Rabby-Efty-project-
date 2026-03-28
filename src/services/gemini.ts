@@ -87,7 +87,7 @@ export function restoreChatHistory(messages: ChatMessage[]) {
   }));
 }
 
-export async function sendChatMessage(message: string): Promise<{ text: string; sources?: { title: string; uri: string }[] }> {
+export async function sendChatMessage(message: string, signal?: AbortSignal): Promise<{ text: string; sources?: { title: string; uri: string }[] }> {
   const parts: any[] = [];
   
   // If this is the first message, attach the files and agenda context
@@ -123,6 +123,10 @@ export async function sendChatMessage(message: string): Promise<{ text: string; 
       tools: [{ googleSearch: {} }],
     },
   });
+
+  if (signal?.aborted) {
+    throw new Error('Aborted');
+  }
 
   const responseText = response.text || 'Sorry, I could not generate a response.';
   

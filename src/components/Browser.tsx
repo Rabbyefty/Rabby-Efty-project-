@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ArrowRight, RotateCw, Home, Lock, ShieldCheck, ExternalLink, Globe, AlertCircle, Star, Bookmark, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RotateCw, Home, Lock, ShieldCheck, ExternalLink, Globe, AlertCircle, Star, Bookmark, Trash2, X, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface BrowserProps {
@@ -8,15 +8,20 @@ interface BrowserProps {
 }
 
 export function Browser({ isVpnConnected, setIsVpnConnected }: BrowserProps) {
-  const [url, setUrl] = useState<string | null>('https://www.google.com/search?igu=1');
-  const [inputUrl, setInputUrl] = useState('google.com');
+  const [homeUrl, setHomeUrl] = useState(() => {
+    return localStorage.getItem('browser_home_url') || 'https://www.google.com/search?igu=1';
+  });
+  const [url, setUrl] = useState<string | null>(homeUrl);
+  const [inputUrl, setInputUrl] = useState(homeUrl.replace('https://', '').replace('http://', ''));
   const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [useProxy, setUseProxy] = useState(false);
-  const [history, setHistory] = useState<string[]>(['https://www.google.com/search?igu=1']);
+  const [history, setHistory] = useState<string[]>([homeUrl]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [loadError, setLoadError] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [tempHomeUrl, setTempHomeUrl] = useState(homeUrl);
   const [bookmarks, setBookmarks] = useState<{url: string, title: string}[]>(() => {
     const saved = localStorage.getItem('browser_bookmarks');
     return saved ? JSON.parse(saved) : [
@@ -138,7 +143,7 @@ export function Browser({ isVpnConnected, setIsVpnConnected }: BrowserProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full relative z-10 bg-white/95 backdrop-blur-2xl overflow-hidden border-white/20 shadow-2xl mt-[108px]">
+    <div className="flex-1 flex flex-col h-full relative z-10 bg-white/95 backdrop-blur-2xl overflow-hidden border-white/20 shadow-2xl pt-12 pb-24">
       {/* Browser Toolbar */}
       <div className="bg-white/90 backdrop-blur-xl border-b border-zinc-200 p-3 flex flex-col space-y-3 shadow-sm">
         <div className="flex items-center space-x-3 text-zinc-700">
@@ -172,7 +177,7 @@ export function Browser({ isVpnConnected, setIsVpnConnected }: BrowserProps) {
             </button>
             <button 
               className="p-2.5 hover:bg-zinc-200/50 rounded-full transition-all active:scale-90"
-              onClick={() => navigateTo('https://www.google.com/search?igu=1')}
+              onClick={() => navigateTo(homeUrl)}
             >
               <Home className="w-5 h-5" />
             </button>
@@ -261,11 +266,24 @@ export function Browser({ isVpnConnected, setIsVpnConnected }: BrowserProps) {
               <span>Proxy Mode: {useProxy ? 'ON' : 'OFF'}</span>
             </button>
             <button 
-              onClick={() => setShowBookmarks(!showBookmarks)}
+              onClick={() => {
+                setShowBookmarks(!showBookmarks);
+                setShowSettings(false);
+              }}
               className={`flex items-center space-x-1.5 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-colors ${showBookmarks ? 'bg-indigo-500 text-white' : 'bg-zinc-200 text-zinc-500 hover:bg-zinc-300'}`}
             >
               <Bookmark className="w-3 h-3" />
               <span>Bookmarks</span>
+            </button>
+            <button 
+              onClick={() => {
+                setShowSettings(!showSettings);
+                setShowBookmarks(false);
+              }}
+              className={`flex items-center space-x-1.5 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-colors ${showSettings ? 'bg-indigo-500 text-white' : 'bg-zinc-200 text-zinc-500 hover:bg-zinc-300'}`}
+            >
+              <Settings className="w-3 h-3" />
+              <span>Settings</span>
             </button>
             <div className="flex items-center space-x-1 text-[9px] text-zinc-400 font-medium hidden sm:flex">
               <AlertCircle className="w-3 h-3" />
@@ -322,6 +340,51 @@ export function Browser({ isVpnConnected, setIsVpnConnected }: BrowserProps) {
                       </div>
                     ))
                   )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Settings Dropdown */}
+          <AnimatePresence>
+            {showSettings && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute top-full left-2 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-zinc-200 overflow-hidden z-50"
+              >
+                <div className="p-3 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+                  <h3 className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Browser Settings</h3>
+                  <button onClick={() => setShowSettings(false)} className="text-zinc-400 hover:text-zinc-600">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="p-4 space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-700 mb-1">Home Page URL</label>
+                    <input 
+                      type="text" 
+                      value={tempHomeUrl}
+                      onChange={(e) => setTempHomeUrl(e.target.value)}
+                      className="w-full bg-zinc-100 border border-zinc-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <button 
+                    onClick={() => {
+                      let finalUrl = tempHomeUrl.trim();
+                      if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                        finalUrl = 'https://' + finalUrl;
+                      }
+                      setHomeUrl(finalUrl);
+                      localStorage.setItem('browser_home_url', finalUrl);
+                      setShowSettings(false);
+                    }}
+                    className="w-full bg-indigo-500 hover:bg-indigo-600 text-white rounded-md py-2 text-sm font-medium transition-colors"
+                  >
+                    Save Settings
+                  </button>
                 </div>
               </motion.div>
             )}

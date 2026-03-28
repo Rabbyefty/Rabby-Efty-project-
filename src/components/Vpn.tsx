@@ -126,7 +126,7 @@ export function Vpn({ isConnected, setIsConnected }: VpnProps) {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-32 pb-48 relative z-10 flex flex-col items-center justify-center h-full text-white">
+    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-14 pb-24 relative z-10 flex flex-col items-center justify-center h-full text-white">
       <div className="w-full max-w-md space-y-12 text-center">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">꧁Rᴀʙʙʏ Eғᴛʏ꧂ VPN</h1>

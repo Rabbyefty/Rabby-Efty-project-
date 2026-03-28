@@ -131,7 +131,7 @@ export function FbAutoLike({ isVpnConnected }: FbAutoLikeProps) {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-32 pb-48 relative z-10 flex flex-col items-center">
+    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-14 pb-24 relative z-10 flex flex-col items-center">
       <div className="w-full max-w-2xl space-y-8">
         <div className="text-center space-y-4">
           <div className="flex justify-center space-x-4 mb-2">

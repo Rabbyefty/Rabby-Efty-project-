@@ -48,6 +48,7 @@ export function VoiceChat({ isVpnConnected }: VoiceChatProps) {
 
   const playbackCtxRef = useRef<AudioContext | null>(null);
   const nextPlayTimeRef = useRef<number>(0);
+  const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
 
   const speakText = (text: string, index: number) => {
     if ('speechSynthesis' in window) {
@@ -89,7 +90,7 @@ export function VoiceChat({ isVpnConnected }: VoiceChatProps) {
       nextPlayTimeRef.current = playbackCtxRef.current.currentTime;
 
       const sessionPromise = ai.live.connect({
-        model: "gemini-2.5-flash-native-audio-preview-12-2025",
+        model: "gemini-3.1-flash-live-preview",
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -144,35 +145,48 @@ export function VoiceChat({ isVpnConnected }: VoiceChatProps) {
             const msg = message as any;
             
             // Handle Audio Playback
-            const audioPart = msg.serverContent?.modelTurn?.parts?.find((p: any) => p.inlineData?.data);
-            const base64Audio = audioPart?.inlineData?.data;
-            
-            if (base64Audio && playbackCtxRef.current) {
-              const binary = atob(base64Audio);
-              const buffer = new Uint8Array(binary.length);
-              for (let i = 0; i < binary.length; i++) {
-                buffer[i] = binary.charCodeAt(i);
-              }
-              const pcm16 = new Int16Array(buffer.buffer);
-              const float32 = new Float32Array(pcm16.length);
-              for (let i = 0; i < pcm16.length; i++) {
-                float32[i] = pcm16[i] / 0x7FFF;
-              }
-              const audioBuffer = playbackCtxRef.current.createBuffer(1, float32.length, 24000);
-              audioBuffer.getChannelData(0).set(float32);
-              const source = playbackCtxRef.current.createBufferSource();
-              source.buffer = audioBuffer;
-              source.connect(playbackCtxRef.current.destination);
+            const parts = msg.serverContent?.modelTurn?.parts || [];
+            for (const part of parts) {
+              const base64Audio = part.inlineData?.data;
+              if (base64Audio && playbackCtxRef.current) {
+                const binary = atob(base64Audio);
+                const buffer = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                  buffer[i] = binary.charCodeAt(i);
+                }
+                const pcm16 = new Int16Array(buffer.buffer);
+                const float32 = new Float32Array(pcm16.length);
+                for (let i = 0; i < pcm16.length; i++) {
+                  float32[i] = pcm16[i] / 0x7FFF;
+                }
+                const audioBuffer = playbackCtxRef.current.createBuffer(1, float32.length, 24000);
+                audioBuffer.getChannelData(0).set(float32);
+                const source = playbackCtxRef.current.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(playbackCtxRef.current.destination);
 
-              const currentTime = playbackCtxRef.current.currentTime;
-              if (nextPlayTimeRef.current < currentTime) {
-                nextPlayTimeRef.current = currentTime;
+                const currentTime = playbackCtxRef.current.currentTime;
+                if (nextPlayTimeRef.current < currentTime) {
+                  nextPlayTimeRef.current = currentTime;
+                }
+                source.start(nextPlayTimeRef.current);
+                nextPlayTimeRef.current += audioBuffer.duration;
+                
+                source.onended = () => {
+                  activeSourcesRef.current = activeSourcesRef.current.filter(s => s !== source);
+                };
+                activeSourcesRef.current.push(source);
               }
-              source.start(nextPlayTimeRef.current);
-              nextPlayTimeRef.current += audioBuffer.duration;
             }
-            if (message.serverContent?.interrupted) {
-              nextPlayTimeRef.current = 0; // Reset playback queue
+            
+            if (msg.serverContent?.interrupted) {
+              activeSourcesRef.current.forEach(source => {
+                try { source.stop(); } catch (e) {}
+              });
+              activeSourcesRef.current = [];
+              if (playbackCtxRef.current) {
+                nextPlayTimeRef.current = playbackCtxRef.current.currentTime;
+              }
             }
 
             // Handle Transcriptions
@@ -265,7 +279,7 @@ export function VoiceChat({ isVpnConnected }: VoiceChatProps) {
   }, []);
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-32 pb-48 relative z-10 flex flex-col items-center justify-center min-h-full">
+    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-14 pb-24 relative z-10 flex flex-col items-center justify-center min-h-full">
       <div className="w-full max-w-md space-y-12 text-center">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight text-white">꧁Rᴀʙʙʏ Eғᴛʏ꧂ Voice</h1>

@@ -11,10 +11,11 @@ interface ChatbotProps {
   messages: ChatMessage[];
   onSendMessage: (text: string) => void;
   onClearChat?: () => void;
+  onStopGeneration?: () => void;
   isTyping: boolean;
 }
 
-export function Chatbot({ messages, onSendMessage, onClearChat, isTyping }: ChatbotProps) {
+export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration, isTyping }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isSpeaking, setIsSpeaking] = useState<string | null>(null);
@@ -285,12 +286,37 @@ export function Chatbot({ messages, onSendMessage, onClearChat, isTyping }: Chat
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-start"
+                  className="flex flex-col items-start space-y-2"
                 >
-                  <div className="glass-card rounded-3xl rounded-tl-sm px-5 py-3.5 shadow-sm flex items-center space-x-2 border border-white/10">
-                    <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
-                    <span className="text-sm text-white/70">Thinking...</span>
+                  <div className="glass-card rounded-3xl rounded-tl-sm px-5 py-3.5 shadow-sm flex items-center space-x-3 border border-white/10">
+                    <div className="flex space-x-1.5 items-center">
+                      <motion.div
+                        className="w-2 h-2 bg-indigo-400 rounded-full"
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                      />
+                      <motion.div
+                        className="w-2 h-2 bg-indigo-400 rounded-full"
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                      />
+                      <motion.div
+                        className="w-2 h-2 bg-indigo-400 rounded-full"
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                      />
+                    </div>
                   </div>
+                  
+                  {onStopGeneration && (
+                    <button
+                      onClick={onStopGeneration}
+                      className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white/70 hover:text-white transition-colors ml-2"
+                    >
+                      <StopCircle className="w-3.5 h-3.5" />
+                      <span>Stop generating</span>
+                    </button>
+                  )}
                 </motion.div>
               )}
               <div ref={messagesEndRef} />

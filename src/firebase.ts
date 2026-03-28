@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User, signInAnonymously } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -30,6 +30,29 @@ export const signInWithGoogle = async () => {
     if (error?.code !== 'auth/popup-closed-by-user') {
       console.error("Error signing in with Google:", error);
     }
+    throw error;
+  }
+};
+
+export const signInWithPhoneMock = async (phoneNumber: string) => {
+  try {
+    const result = await signInAnonymously(auth);
+    const user = result.user;
+    
+    // Create/update user profile in Firestore with mock phone number
+    const userRef = doc(db, 'users', user.uid);
+    await setDoc(userRef, {
+      uid: user.uid,
+      phoneNumber: phoneNumber,
+      displayName: phoneNumber,
+      photoURL: '',
+      lastLogin: serverTimestamp(),
+      createdAt: serverTimestamp()
+    }, { merge: true });
+    
+    return user;
+  } catch (error: any) {
+    console.error("Error signing in anonymously:", error);
     throw error;
   }
 };

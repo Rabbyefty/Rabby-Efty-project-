@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Shield, Battery, Wifi, Signal, Cpu, HardDrive, Activity, Zap, Globe, Clock, Server, Smartphone, CheckCircle2, AlertCircle, Sun, Moon, LogOut, User as UserIcon } from 'lucide-react';
+import { Shield, Battery, Wifi, Signal, Cpu, HardDrive, Activity, Zap, Globe, Clock, Server, Smartphone, CheckCircle2, AlertCircle, Sun, Moon, LogOut, User as UserIcon, ChevronRight, Info, Download, Settings, Languages, X, Check } from 'lucide-react';
 import { Card } from './ui/card';
 import { User } from '../firebase';
 
@@ -92,6 +92,22 @@ export const SystemStatus = ({
     browser: 'Unknown Browser'
   });
 
+  const [showLanguageRegion, setShowLanguageRegion] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [activeLanguage, setActiveLanguage] = useState(() => localStorage.getItem('app_language') || 'English');
+  const [activeRegion, setActiveRegion] = useState(() => localStorage.getItem('app_region') || 'United States');
+
+  const languages = ['English', 'Bangla', 'Hindi'];
+  const regions = ['United States', 'United Kingdom', 'India', 'Bangladesh'];
+
+  const handleSaveLanguageRegion = (lang: string, reg: string) => {
+    setActiveLanguage(lang);
+    setActiveRegion(reg);
+    localStorage.setItem('app_language', lang);
+    localStorage.setItem('app_region', reg);
+    setShowLanguageRegion(false);
+  };
+
   useEffect(() => {
     // 1. Get OS and Browser Info
     const ua = navigator.userAgent;
@@ -180,7 +196,7 @@ export const SystemStatus = ({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-32 pb-48 relative z-10">
+    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-14 pb-24 relative z-10">
       <div className="max-w-2xl mx-auto space-y-8">
         <div className="text-center space-y-2 mb-12">
           <motion.div
@@ -197,24 +213,11 @@ export const SystemStatus = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="p-6 glass-card border-white/10 md:col-span-2 space-y-4">
             <h3 className={`text-xs font-black uppercase tracking-[0.2em] mb-2 flex items-center ${theme === 'light' ? 'text-zinc-400' : 'text-white/30'}`}>
-              <Zap className="w-3 h-3 mr-2 text-amber-400" />
-              Settings
+              <UserIcon className="w-3 h-3 mr-2 text-indigo-400" />
+              Account
             </h3>
             
             <div className="flex flex-col gap-4">
-              <button 
-                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors border ${theme === 'light' ? 'bg-black/5 border-black/10 hover:bg-black/10 text-zinc-900' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`}
-              >
-                <div className="flex items-center space-x-3">
-                  {theme === 'light' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-indigo-400" />}
-                  <span className="font-medium">{theme === 'light' ? 'Light Mode' : 'Dark Mode'}</span>
-                </div>
-                <div className={`w-10 h-5 rounded-full relative transition-colors ${theme === 'light' ? 'bg-indigo-500' : 'bg-zinc-700'}`}>
-                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${theme === 'light' ? 'right-1' : 'left-1'}`} />
-                </div>
-              </button>
-
               {isAuthLoading ? (
                 <div className="flex items-center justify-center py-3">
                   <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
@@ -264,6 +267,73 @@ export const SystemStatus = ({
                   <span>Sign in with Google</span>
                 </button>
               )}
+            </div>
+          </Card>
+
+          <Card className="p-6 glass-card border-white/10 md:col-span-2 space-y-4">
+            <h3 className={`text-xs font-black uppercase tracking-[0.2em] mb-2 flex items-center ${theme === 'light' ? 'text-zinc-400' : 'text-white/30'}`}>
+              <Settings className="w-3 h-3 mr-2 text-zinc-400" />
+              General
+            </h3>
+            
+            <div className={`flex flex-col rounded-2xl overflow-hidden border ${theme === 'light' ? 'border-black/10' : 'border-white/10'}`}>
+              <button 
+                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                className={`w-full flex items-center justify-between px-4 py-3 transition-colors border-b ${theme === 'light' ? 'bg-black/5 border-black/10 hover:bg-black/10 text-zinc-900' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${theme === 'light' ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-black'}`}>
+                    {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                  </div>
+                  <span className="font-medium">Appearance</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm ${theme === 'light' ? 'text-zinc-500' : 'text-white/50'}`}>{theme === 'light' ? 'Light' : 'Dark'}</span>
+                  <ChevronRight className={`w-4 h-4 ${theme === 'light' ? 'text-zinc-400' : 'text-white/30'}`} />
+                </div>
+              </button>
+
+              <button 
+                onClick={() => setShowAbout(true)}
+                className={`w-full flex items-center justify-between px-4 py-3 transition-colors border-b ${theme === 'light' ? 'bg-black/5 border-black/10 hover:bg-black/10 text-zinc-900' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center">
+                    <Info className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium">About</span>
+                </div>
+                <ChevronRight className={`w-4 h-4 ${theme === 'light' ? 'text-zinc-400' : 'text-white/30'}`} />
+              </button>
+
+              <button className={`w-full flex items-center justify-between px-4 py-3 transition-colors border-b ${theme === 'light' ? 'bg-black/5 border-black/10 hover:bg-black/10 text-zinc-900' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`}>
+                <div className="flex items-center space-x-3">
+                  <div className="w-7 h-7 rounded-lg bg-slate-500 text-white flex items-center justify-center">
+                    <Download className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium">Software Update</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  <ChevronRight className={`w-4 h-4 ${theme === 'light' ? 'text-zinc-400' : 'text-white/30'}`} />
+                </div>
+              </button>
+
+              <button 
+                onClick={() => setShowLanguageRegion(true)}
+                className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${theme === 'light' ? 'bg-black/5 hover:bg-black/10 text-zinc-900' : 'bg-white/5 hover:bg-white/10 text-white'}`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-500 text-white flex items-center justify-center">
+                    <Languages className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium">Language & Region</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm ${theme === 'light' ? 'text-zinc-500' : 'text-white/50'}`}>{activeLanguage}</span>
+                  <ChevronRight className={`w-4 h-4 ${theme === 'light' ? 'text-zinc-400' : 'text-white/30'}`} />
+                </div>
+              </button>
             </div>
           </Card>
 
@@ -368,6 +438,156 @@ export const SystemStatus = ({
           </div>
         </div>
       </div>
+
+      {/* About Modal */}
+      {showAbout && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl ${theme === 'light' ? 'bg-white' : 'bg-zinc-900 border border-white/10'}`}
+          >
+            <div className={`p-4 flex items-center justify-between border-b ${theme === 'light' ? 'border-zinc-200' : 'border-white/10'}`}>
+              <h2 className={`text-lg font-bold ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>About</h2>
+              <button 
+                onClick={() => setShowAbout(false)}
+                className={`p-2 rounded-full transition-colors ${theme === 'light' ? 'hover:bg-zinc-100 text-zinc-500' : 'hover:bg-white/10 text-white/50'}`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <div className="flex flex-col items-center justify-center space-y-2 mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-2">
+                  <Smartphone className="w-10 h-10 text-white" />
+                </div>
+                <h3 className={`text-xl font-black ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>RabbyOS</h3>
+                <p className={`text-sm font-medium ${theme === 'light' ? 'text-zinc-500' : 'text-white/50'}`}>Version 17.0.1 PRO</p>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className={`text-xs font-bold uppercase tracking-wider ${theme === 'light' ? 'text-zinc-500' : 'text-white/40'}`}>Device Owner</h3>
+                <div className={`rounded-2xl overflow-hidden border ${theme === 'light' ? 'border-zinc-200 bg-zinc-50' : 'border-white/10 bg-white/5'} p-4 flex items-center gap-4`}>
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt="Owner" className="w-12 h-12 rounded-full border border-white/10" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center border border-white/10">
+                      <UserIcon className="w-6 h-6 text-indigo-400" />
+                    </div>
+                  )}
+                  <div>
+                    <p className={`font-bold ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>{user?.displayName || 'Guest User'}</p>
+                    <p className={`text-xs ${theme === 'light' ? 'text-zinc-500' : 'text-white/50'}`}>{user?.email || 'Not signed in'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className={`text-xs font-bold uppercase tracking-wider ${theme === 'light' ? 'text-zinc-500' : 'text-white/40'}`}>Device Info</h3>
+                <div className={`rounded-2xl overflow-hidden border ${theme === 'light' ? 'border-zinc-200 bg-zinc-50' : 'border-white/10 bg-white/5'}`}>
+                  <div className={`flex justify-between p-3 border-b ${theme === 'light' ? 'border-zinc-200' : 'border-white/10'}`}>
+                    <span className={`text-sm ${theme === 'light' ? 'text-zinc-600' : 'text-white/60'}`}>Name</span>
+                    <span className={`text-sm font-medium ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>Rabby's iPhone 17 Pro Max</span>
+                  </div>
+                  <div className={`flex justify-between p-3 border-b ${theme === 'light' ? 'border-zinc-200' : 'border-white/10'}`}>
+                    <span className={`text-sm ${theme === 'light' ? 'text-zinc-600' : 'text-white/60'}`}>Model</span>
+                    <span className={`text-sm font-medium ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>{deviceInfo.model}</span>
+                  </div>
+                  <div className={`flex justify-between p-3 border-b ${theme === 'light' ? 'border-zinc-200' : 'border-white/10'}`}>
+                    <span className={`text-sm ${theme === 'light' ? 'text-zinc-600' : 'text-white/60'}`}>System</span>
+                    <span className={`text-sm font-medium ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>{deviceInfo.os}</span>
+                  </div>
+                  <div className={`flex justify-between p-3 border-b ${theme === 'light' ? 'border-zinc-200' : 'border-white/10'}`}>
+                    <span className={`text-sm ${theme === 'light' ? 'text-zinc-600' : 'text-white/60'}`}>Browser</span>
+                    <span className={`text-sm font-medium ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>{deviceInfo.browser}</span>
+                  </div>
+                  <div className={`flex justify-between p-3 border-b ${theme === 'light' ? 'border-zinc-200' : 'border-white/10'}`}>
+                    <span className={`text-sm ${theme === 'light' ? 'text-zinc-600' : 'text-white/60'}`}>Processor</span>
+                    <span className={`text-sm font-medium ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>{deviceInfo.cores} Cores</span>
+                  </div>
+                  <div className={`flex justify-between p-3 border-b ${theme === 'light' ? 'border-zinc-200' : 'border-white/10'}`}>
+                    <span className={`text-sm ${theme === 'light' ? 'text-zinc-600' : 'text-white/60'}`}>Memory</span>
+                    <span className={`text-sm font-medium ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>~{deviceInfo.memory} GB</span>
+                  </div>
+                  <div className={`flex justify-between p-3`}>
+                    <span className={`text-sm ${theme === 'light' ? 'text-zinc-600' : 'text-white/60'}`}>Storage Capacity</span>
+                    <span className={`text-sm font-medium ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>{storageUsage ? formatBytes(storageUsage.total) : 'Unknown'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Language & Region Modal */}
+      {showLanguageRegion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl ${theme === 'light' ? 'bg-white' : 'bg-zinc-900 border border-white/10'}`}
+          >
+            <div className={`p-4 flex items-center justify-between border-b ${theme === 'light' ? 'border-zinc-200' : 'border-white/10'}`}>
+              <h2 className={`text-lg font-bold ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>Language & Region</h2>
+              <button 
+                onClick={() => setShowLanguageRegion(false)}
+                className={`p-2 rounded-full transition-colors ${theme === 'light' ? 'hover:bg-zinc-100 text-zinc-500' : 'hover:bg-white/10 text-white/50'}`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              {/* Language Selection */}
+              <div className="space-y-3">
+                <h3 className={`text-xs font-bold uppercase tracking-wider ${theme === 'light' ? 'text-zinc-500' : 'text-white/40'}`}>Language</h3>
+                <div className={`rounded-2xl overflow-hidden border ${theme === 'light' ? 'border-zinc-200' : 'border-white/10'}`}>
+                  {languages.map((lang, idx) => (
+                    <button
+                      key={lang}
+                      onClick={() => setActiveLanguage(lang)}
+                      className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${idx !== languages.length - 1 ? (theme === 'light' ? 'border-b border-zinc-200' : 'border-b border-white/10') : ''} ${theme === 'light' ? 'bg-zinc-50 hover:bg-zinc-100 text-zinc-900' : 'bg-white/5 hover:bg-white/10 text-white'}`}
+                    >
+                      <span className="font-medium">{lang}</span>
+                      {activeLanguage === lang && <Check className="w-5 h-5 text-indigo-500" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Region Selection */}
+              <div className="space-y-3">
+                <h3 className={`text-xs font-bold uppercase tracking-wider ${theme === 'light' ? 'text-zinc-500' : 'text-white/40'}`}>Region</h3>
+                <div className={`rounded-2xl overflow-hidden border ${theme === 'light' ? 'border-zinc-200' : 'border-white/10'}`}>
+                  {regions.map((reg, idx) => (
+                    <button
+                      key={reg}
+                      onClick={() => setActiveRegion(reg)}
+                      className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${idx !== regions.length - 1 ? (theme === 'light' ? 'border-b border-zinc-200' : 'border-b border-white/10') : ''} ${theme === 'light' ? 'bg-zinc-50 hover:bg-zinc-100 text-zinc-900' : 'bg-white/5 hover:bg-white/10 text-white'}`}
+                    >
+                      <span className="font-medium">{reg}</span>
+                      {activeRegion === reg && <Check className="w-5 h-5 text-indigo-500" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className={`p-4 border-t ${theme === 'light' ? 'border-zinc-200 bg-zinc-50' : 'border-white/10 bg-black/20'}`}>
+              <button
+                onClick={() => handleSaveLanguageRegion(activeLanguage, activeRegion)}
+                className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-bold transition-colors shadow-lg shadow-indigo-500/25"
+              >
+                Apply Changes
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

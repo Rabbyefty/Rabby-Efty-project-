@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Share, Trash2, Heart, Play } from 'lucide-react';
+import { ChevronLeft, Share, Trash2, Heart, Play, Sparkles } from 'lucide-react';
 import { VFSNode, getAllFiles, getNode, deleteNode } from '../lib/vfs';
+import { GoogleGenAI } from '@google/genai';
 
 export function Gallery() {
   const [mediaFiles, setMediaFiles] = useState<VFSNode[]>([]);
   const [previewNode, setPreviewNode] = useState<VFSNode | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [aiDescription, setAiDescription] = useState<string | null>(null);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   useEffect(() => {
     loadMedia();
@@ -32,6 +35,7 @@ export function Gallery() {
       const url = URL.createObjectURL(fullNode.data);
       setPreviewUrl(url);
       setPreviewNode(fullNode);
+      setAiDescription(null);
     }
   };
 
@@ -39,6 +43,7 @@ export function Gallery() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setPreviewNode(null);
+    setAiDescription(null);
   };
 
   const handleDelete = async () => {
@@ -46,6 +51,49 @@ export function Gallery() {
       await deleteNode(previewNode.id);
       closePreview();
       loadMedia();
+    }
+  };
+
+  const generateDescription = async () => {
+    if (!previewNode || !previewNode.data || !previewNode.mimeType?.startsWith('image/')) return;
+    
+    if (!process.env.GEMINI_API_KEY) {
+      setAiDescription("AI features require a Gemini API key.");
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+      // Convert Blob to Base64
+      const reader = new FileReader();
+      reader.readAsDataURL(previewNode.data);
+      reader.onloadend = async () => {
+        const base64data = reader.result as string;
+        const base64String = base64data.split(',')[1];
+
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const response = await ai.models.generateContent({
+          model: 'gemini-3-flash-preview',
+          contents: {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: previewNode.mimeType || 'image/jpeg',
+                  data: base64String
+                }
+              },
+              { text: "Describe this image in a short, engaging sentence." }
+            ]
+          }
+        });
+        
+        setAiDescription(response.text || "Could not generate description.");
+        setIsGeneratingDescription(false);
+      };
+    } catch (error) {
+      console.error("Error generating description:", error);
+      setAiDescription("Failed to generate description.");
+      setIsGeneratingDescription(false);
     }
   };
 
@@ -92,12 +140,47 @@ export function Gallery() {
             </div>
 
             {/* Media Content */}
-            <div className="flex-1 flex items-center justify-center overflow-hidden bg-black">
+            <div className="flex-1 flex items-center justify-center overflow-hidden bg-black relative">
               {previewNode.mimeType?.startsWith('image/') && (
                 <img src={previewUrl} alt={previewNode.name} className="max-w-full max-h-full object-contain" />
               )}
               {previewNode.mimeType?.startsWith('video/') && (
                 <video src={previewUrl} controls autoPlay className="max-w-full max-h-full" />
+              )}
+              
+              {/* AI Description Overlay */}
+              {previewNode.mimeType?.startsWith('image/') && (
+                <div className="absolute bottom-24 left-4 right-4 flex flex-col items-center">
+                  <AnimatePresence>
+                    {aiDescription && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        className="bg-black/60 backdrop-blur-md text-white px-4 py-3 rounded-2xl mb-4 text-center text-sm shadow-lg max-w-md border border-white/10"
+                      >
+                        {aiDescription}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {!aiDescription && !isGeneratingDescription && (
+                    <button
+                      onClick={generateDescription}
+                      className="bg-black/40 hover:bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-2 text-sm transition-colors border border-white/10"
+                    >
+                      <Sparkles className="w-4 h-4 text-purple-400" />
+                      Describe with AI
+                    </button>
+                  )}
+                  
+                  {isGeneratingDescription && (
+                    <div className="bg-black/40 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-2 text-sm border border-white/10">
+                      <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
+                      Analyzing...
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 

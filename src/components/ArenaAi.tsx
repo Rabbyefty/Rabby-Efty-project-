@@ -73,7 +73,7 @@ export function ArenaAi({ isVpnConnected }: ArenaAiProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full relative z-10 bg-white/95 backdrop-blur-2xl overflow-hidden border-white/20 shadow-2xl mt-[108px]">
+    <div className="flex-1 flex flex-col h-full relative z-10 bg-white/95 backdrop-blur-2xl overflow-hidden border-white/20 shadow-2xl pt-12 pb-24">
       {/* Header */}
       <div className="bg-white/90 backdrop-blur-xl border-b border-zinc-200 p-4 flex flex-col space-y-3 shadow-sm z-20">
         <div className="flex items-center justify-between text-zinc-700">

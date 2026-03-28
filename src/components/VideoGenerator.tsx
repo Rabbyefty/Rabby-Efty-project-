@@ -35,6 +35,7 @@ export function VideoGenerator({ isVpnConnected }: VideoGeneratorProps) {
   const [stabilizationLevel, setStabilizationLevel] = useState(50);
 
   const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mergeFileInputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +74,7 @@ export function VideoGenerator({ isVpnConnected }: VideoGeneratorProps) {
     
     if ('dataTransfer' in e) {
       e.preventDefault();
+      dragCounter.current = 0;
       setIsDragging(false);
       file = e.dataTransfer.files?.[0];
     } else {
@@ -94,14 +96,27 @@ export function VideoGenerator({ isVpnConnected }: VideoGeneratorProps) {
     }
   };
 
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current += 1;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(true);
+    e.stopPropagation();
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(false);
+    e.stopPropagation();
+    dragCounter.current -= 1;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
   };
 
   const [isRefining, setIsRefining] = useState(false);
@@ -226,6 +241,7 @@ export function VideoGenerator({ isVpnConnected }: VideoGeneratorProps) {
   return (
     <div 
       className="flex-1 relative z-10 flex flex-col text-white font-sans"
+      onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleFileUpload}
@@ -303,7 +319,7 @@ export function VideoGenerator({ isVpnConnected }: VideoGeneratorProps) {
       </div>
       
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-32 pb-48 flex flex-col items-center justify-center relative">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-14 pb-24 flex flex-col items-center justify-center relative">
         <div className="w-full max-w-4xl flex flex-col items-center justify-center z-10">
           
           {!videoUrl && !uploadedVideo && !isGenerating && (

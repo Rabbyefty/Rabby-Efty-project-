@@ -137,7 +137,7 @@ export function CardGenerator({ isVpnConnected }: { isVpnConnected?: boolean }) 
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-32 pb-48 relative z-10 text-white">
+    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-14 pb-24 relative z-10 text-white">
       <div className="max-w-2xl mx-auto space-y-8 pb-32">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 glass-card rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm">

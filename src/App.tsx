@@ -1,9 +1,10 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useRef } from 'react';
 import { Home } from './components/Home';
+import { Apps } from './components/Apps';
 import { StatusBar } from './components/StatusBar';
 import { UploadedFile, ChatMessage } from './types';
 import { initChatSession, sendChatMessage, restoreChatHistory } from './services/gemini';
-import { Menu, ChevronRight, Share, Battery, Wifi, Signal, Image as ImageIcon, Video, Mic, Sparkles, Shield, Globe, DownloadCloud, ThumbsUp, Smartphone, Home as HomeIcon, ArrowLeft, LogOut, User as UserIcon, Swords, Activity, Sun, Moon, CreditCard, Mail, Loader2, MessageCircle, Phone, Folder } from 'lucide-react';
+import { Menu, ChevronRight, Share, Battery, Wifi, Signal, Image as ImageIcon, Video, Mic, Sparkles, Shield, Globe, DownloadCloud, ThumbsUp, Smartphone, Home as HomeIcon, ArrowLeft, LogOut, User as UserIcon, Swords, Activity, Sun, Moon, CreditCard, Mail, Loader2, MessageCircle, Phone, Folder, LayoutGrid, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, signInWithGoogle, logout, onAuthStateChanged, User } from './firebase';
 import { populateDummyData } from './lib/populate';
@@ -26,7 +27,7 @@ const WhatsApp = lazy(() => import('./components/WhatsApp').then(m => ({ default
 const FileManager = lazy(() => import('./components/FileManager').then(m => ({ default: m.FileManager })));
 const Gallery = lazy(() => import('./components/Gallery').then(m => ({ default: m.Gallery })));
 
-type Tab = 'home' | 'image' | 'video' | 'voice' | 'vpn' | 'browser' | 'downloader' | 'fb-autolike' | 'build-apk' | 'arena-ai' | 'status' | 'card-gen' | 'temp-mail' | 'temp-number' | 'whatsapp' | 'file-manager' | 'gallery';
+type Tab = 'home' | 'apps' | 'image' | 'video' | 'voice' | 'vpn' | 'browser' | 'downloader' | 'fb-autolike' | 'build-apk' | 'arena-ai' | 'status' | 'card-gen' | 'temp-mail' | 'temp-number' | 'whatsapp' | 'file-manager' | 'gallery';
 
 const APPS = [
   { id: 'image', name: 'Image', icon: ImageIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
@@ -50,6 +51,9 @@ const APPS = [
 const DOCK_APPS = [
   { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
   { id: 'browser', name: 'Browser', icon: Globe, color: 'text-blue-400', bg: 'bg-blue-500/20' },
+  { id: 'image', name: 'Image', icon: ImageIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
+  { id: 'video', name: 'Video', icon: Video, color: 'text-purple-400', bg: 'bg-purple-500/20' },
+  { id: 'vpn', name: 'VPN', icon: Shield, color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
   { id: 'arena-ai', name: 'Arena AI', icon: Swords, color: 'text-orange-400', bg: 'bg-orange-500/20' },
   { id: 'status', name: 'Settings', icon: Activity, color: 'text-zinc-400', bg: 'bg-zinc-500/20' },
 ];
@@ -57,6 +61,7 @@ const DOCK_APPS = [
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [history, setHistory] = useState<Tab[]>(['home']);
+  const [forwardHistory, setForwardHistory] = useState<Tab[]>([]);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -82,6 +87,10 @@ export default function App() {
   const [isTyping, setIsTyping] = useState(false);
   const [isVpnConnected, setIsVpnConnected] = useState(false);
 
+  const [isLocked, setIsLocked] = useState(true);
+  const [showControlCenter, setShowControlCenter] = useState(false);
+  const [showSiri, setShowSiri] = useState(false);
+
   const [isDynamicIslandExpanded, setIsDynamicIslandExpanded] = useState(false);
   const [dynamicIslandContent, setDynamicIslandContent] = useState<React.ReactNode>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -97,6 +106,13 @@ export default function App() {
       document.body.classList.remove('light');
     }
   }, [theme]);
+
+  // Lock screen time
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Dynamic Island Auto-collapse
   useEffect(() => {
@@ -155,7 +171,14 @@ export default function App() {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const currentRequestRef = useRef<number>(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const handleSendMessage = async (text: string) => {
+    const requestId = Date.now();
+    currentRequestRef.current = requestId;
+    abortControllerRef.current = new AbortController();
+
     const userMsgId = Date.now().toString();
     const userMsg: ChatMessage = { 
       id: userMsgId,
@@ -168,7 +191,9 @@ export default function App() {
     setIsTyping(true);
 
     try {
-      const response = await sendChatMessage(text);
+      const response = await sendChatMessage(text, abortControllerRef.current.signal);
+      if (currentRequestRef.current !== requestId) return; // Aborted
+      
       setChatMessages((prev) => {
         const updated = prev.map(msg => 
           msg.id === userMsgId ? { ...msg, status: 'read' as const } : msg
@@ -184,7 +209,9 @@ export default function App() {
           }
         ];
       });
-    } catch (error) {
+    } catch (error: any) {
+      if (currentRequestRef.current !== requestId || error.message === 'Aborted') return; // Aborted
+      
       console.error('Error sending message:', error);
       setChatMessages((prev) => {
         const updated = prev.map(msg => 
@@ -201,29 +228,160 @@ export default function App() {
         ];
       });
     } finally {
-      setIsTyping(false);
+      if (currentRequestRef.current === requestId) {
+        setIsTyping(false);
+      }
     }
+  };
+
+  const handleStopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    currentRequestRef.current = 0; // Invalidate current request
+    setIsTyping(false);
+    setChatMessages(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        role: 'model',
+        text: '*Generation stopped by user.*',
+        timestamp: new Date()
+      }
+    ]);
   };
 
   const handleNavigate = (tab: Tab) => {
     setActiveTab(tab);
     setHistory(prev => [...prev, tab]);
+    setForwardHistory([]);
   };
 
   const handleBack = () => {
     if (history.length > 1) {
       const newHistory = [...history];
-      newHistory.pop(); // Remove current
+      const currentTab = newHistory.pop()!; // Remove current
       const previousTab = newHistory[newHistory.length - 1];
       setHistory(newHistory);
       setActiveTab(previousTab);
+      setForwardHistory(prev => [currentTab, ...prev]);
     }
   };
+
+  const handleForward = () => {
+    if (forwardHistory.length > 0) {
+      const newForward = [...forwardHistory];
+      const nextTab = newForward.shift()!;
+      setForwardHistory(newForward);
+      setHistory(prev => [...prev, nextTab]);
+      setActiveTab(nextTab);
+    }
+  };
+
+  const [touchStart, setTouchStart] = useState<{x: number, y: number} | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    if ('touches' in e) {
+      setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    } else {
+      setTouchStart({ x: e.clientX, y: e.clientY });
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!touchStart) return;
+    let endX, endY;
+    if ('changedTouches' in e) {
+      endX = e.changedTouches[0].clientX;
+      endY = e.changedTouches[0].clientY;
+    } else {
+      endX = e.clientX;
+      endY = e.clientY;
+    }
+    
+    const dx = endX - touchStart.x;
+    const dy = endY - touchStart.y;
+
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+      if (dx > 0 && touchStart.x < 50) {
+        handleBack();
+      } else if (dx < 0 && touchStart.x > window.innerWidth - 50) {
+        handleForward();
+      }
+    }
+    setTouchStart(null);
+  };
+
+  if (isLocked) {
+    return (
+      <div className="flex flex-col h-screen w-full overflow-hidden font-sans relative bg-black text-white">
+        <div className="absolute inset-0 z-0">
+          <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop" alt="Wallpaper" className="w-full h-full object-cover opacity-80" />
+        </div>
+        <div className="relative z-10 flex flex-col items-center pt-24 h-full">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-medium text-white/90 mb-1">{currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
+            <h1 className="text-7xl font-light tracking-tighter">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</h1>
+          </div>
+          
+          <div className="mt-auto mb-12 flex flex-col items-center w-full px-8">
+            <div className="flex justify-between w-full mb-8 px-4">
+              <button className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10">
+                <div className="w-5 h-5 rounded-full border-2 border-white/80" />
+              </button>
+              <button className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10">
+                <ImageIcon className="w-5 h-5 text-white/80" />
+              </button>
+            </div>
+            
+            <motion.div 
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              onDragEnd={(e, info) => {
+                if (info.offset.y < -50) {
+                  setIsLocked(false);
+                }
+              }}
+              className="flex flex-col items-center cursor-grab active:cursor-grabbing"
+            >
+              <span className="text-sm font-medium text-white/80 mb-2 tracking-wide">Swipe up to unlock</span>
+              <div className="w-32 h-1.5 bg-white rounded-full" />
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
       className={`flex flex-col h-screen w-full overflow-hidden font-sans relative bg-transparent transition-all duration-700 ${theme === 'light' ? 'light text-zinc-900' : 'text-white'} ${isVpnConnected ? 'shadow-[inset_0_0_100px_rgba(34,197,94,0.15)]' : ''}`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleTouchStart}
+      onMouseUp={handleTouchEnd}
     >
+      {/* Wallpaper Background */}
+      <div className="absolute inset-0 z-[-1] pointer-events-none">
+        <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop" alt="Wallpaper" className="w-full h-full object-cover opacity-40 dark:opacity-20" />
+      </div>
+
+      {/* Control Center Swipe Area (Top Right) */}
+      <div 
+        className="absolute top-0 right-0 w-1/3 h-12 z-[110] cursor-pointer"
+        onPointerDown={(e) => {
+          // Simple swipe down detection
+          const startY = e.clientY;
+          const handlePointerUp = (upEvent: PointerEvent) => {
+            if (upEvent.clientY - startY > 50) {
+              setShowControlCenter(true);
+            }
+            window.removeEventListener('pointerup', handlePointerUp);
+          };
+          window.addEventListener('pointerup', handlePointerUp);
+        }}
+      />
       {/* VPN Secure Overlay */}
       <AnimatePresence>
         {isVpnConnected && (
@@ -235,6 +393,151 @@ export default function App() {
           >
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-green-500/50 to-transparent animate-pulse" />
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-green-500/50 to-transparent animate-pulse" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Control Center */}
+      <AnimatePresence>
+        {showControlCenter && (
+          <motion.div
+            initial={{ opacity: 0, y: '-100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '-100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="absolute inset-0 z-[120] bg-black/40 backdrop-blur-3xl p-6 pt-16 flex flex-col"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowControlCenter(false);
+            }}
+          >
+            <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto w-full">
+              {/* Connectivity */}
+              <div className="bg-white/10 dark:bg-white/5 rounded-3xl p-4 grid grid-cols-2 gap-3 aspect-square backdrop-blur-md border border-white/10">
+                <button className="flex flex-col items-center justify-center gap-1">
+                  <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+                    <Wifi className="w-5 h-5 text-white" />
+                  </div>
+                </button>
+                <button className="flex flex-col items-center justify-center gap-1">
+                  <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+                    <Signal className="w-5 h-5 text-white" />
+                  </div>
+                </button>
+                <button className="flex flex-col items-center justify-center gap-1">
+                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-white" />
+                  </div>
+                </button>
+                <button 
+                  onClick={() => setIsVpnConnected(!isVpnConnected)}
+                  className="flex flex-col items-center justify-center gap-1"
+                >
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${isVpnConnected ? 'bg-green-500' : 'bg-white/20'}`}>
+                    <Shield className="w-5 h-5 text-white" />
+                  </div>
+                </button>
+              </div>
+
+              {/* Media Controls */}
+              <div className="bg-white/10 dark:bg-white/5 rounded-3xl p-4 flex flex-col justify-between aspect-square backdrop-blur-md border border-white/10">
+                <div className="flex justify-between items-center">
+                  <span className="text-white/80 text-xs font-medium">Not Playing</span>
+                  <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                    <Signal className="w-3 h-3 text-white" />
+                  </div>
+                </div>
+                <div className="flex justify-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><ChevronRight className="w-4 h-4 rotate-180 text-white" /></div>
+                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><div className="w-3 h-3 bg-white" /></div>
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><ChevronRight className="w-4 h-4 text-white" /></div>
+                </div>
+              </div>
+
+              {/* Brightness & Volume */}
+              <div className="col-span-2 grid grid-cols-2 gap-4">
+                <div className="bg-white/10 dark:bg-white/5 rounded-3xl h-32 relative flex flex-col justify-end p-4 backdrop-blur-md border border-white/10 overflow-hidden">
+                  <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-white/20" />
+                  <Sun className="w-6 h-6 text-white relative z-10" />
+                </div>
+                <div className="bg-white/10 dark:bg-white/5 rounded-3xl h-32 relative flex flex-col justify-end p-4 backdrop-blur-md border border-white/10 overflow-hidden">
+                  <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-white/20" />
+                  <div className="w-6 h-6 relative z-10 flex items-end justify-center">
+                    <div className="w-1 h-3 bg-white rounded-full mx-0.5" />
+                    <div className="w-1 h-4 bg-white rounded-full mx-0.5" />
+                    <div className="w-1 h-5 bg-white rounded-full mx-0.5" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Theme Toggle */}
+              <button 
+                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                className="col-span-2 bg-white/10 dark:bg-white/5 rounded-3xl p-4 flex items-center justify-between backdrop-blur-md border border-white/10"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-indigo-500' : 'bg-orange-400'}`}>
+                    {theme === 'dark' ? <Moon className="w-5 h-5 text-white" /> : <Sun className="w-5 h-5 text-white" />}
+                  </div>
+                  <span className="text-white font-medium">Dark Mode</span>
+                </div>
+                <div className={`w-12 h-7 rounded-full p-1 transition-colors ${theme === 'dark' ? 'bg-green-500' : 'bg-white/20'}`}>
+                  <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0'}`} />
+                </div>
+              </button>
+            </div>
+            
+            <div className="mt-auto flex justify-center pb-8">
+              <button 
+                onClick={() => setShowControlCenter(false)}
+                className="w-12 h-1.5 bg-white/50 rounded-full"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Siri-like AI Overlay */}
+      <AnimatePresence>
+        {showSiri && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[130] bg-black/60 backdrop-blur-xl flex flex-col items-center justify-end pb-20"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowSiri(false);
+            }}
+          >
+            <div className="text-center mb-12 px-8">
+              <h2 className="text-2xl font-medium text-white/90 mb-2">How can I help?</h2>
+              <p className="text-white/50 text-sm">Try asking "Generate an image of a cat" or "What's the weather?"</p>
+            </div>
+            
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.1, 1],
+                rotate: [0, 90, 180, 270, 360]
+              }}
+              transition={{ 
+                duration: 4,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+              className="w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 blur-xl opacity-80"
+            />
+            <div className="absolute bottom-20 w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-400 via-purple-400 to-pink-400 mix-blend-screen shadow-[0_0_50px_rgba(168,85,247,0.5)] flex items-center justify-center">
+              <Sparkles className="w-10 h-10 text-white" />
+            </div>
+            
+            <button 
+              onClick={() => {
+                setShowSiri(false);
+                handleNavigate('voice');
+              }}
+              className="mt-16 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md border border-white/10 text-white font-medium transition-colors"
+            >
+              Open Voice Chat
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -328,7 +631,7 @@ export default function App() {
       {/* Sidebar - Removed for iOS look */}
 
       {/* Main Content */}
-      <div className={`flex flex-1 overflow-hidden relative z-10 ${activeTab !== 'home' ? 'pt-12 pb-[100px]' : ''}`}>
+      <div className={`flex flex-1 overflow-hidden relative z-10 ${activeTab !== 'home' && activeTab !== 'apps' ? 'pt-0 pb-0' : ''}`}>
         <AnimatePresence mode="wait">
           {activeTab === 'home' ? (
             <motion.div
@@ -336,10 +639,24 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
-              transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className="h-full w-full"
             >
-              <Home onNavigate={handleNavigate} />
+              <Home 
+                onNavigate={handleNavigate} 
+                recentApps={Array.from(new Set([...history].reverse())).filter(id => id !== 'home' && id !== 'apps' && id !== 'status').slice(0, 8).map(id => APPS.find(app => app.id === id)).filter(Boolean)}
+              />
+            </motion.div>
+          ) : activeTab === 'apps' ? (
+            <motion.div
+              key="apps"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="h-full w-full"
+            >
+              <Apps onNavigate={handleNavigate} isVpnConnected={isVpnConnected} setIsVpnConnected={setIsVpnConnected} />
             </motion.div>
           ) : (
             <motion.div
@@ -347,8 +664,8 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-              className="h-full w-full bg-black/40 backdrop-blur-xl rounded-t-[2.5rem] border-t border-white/10 overflow-hidden flex flex-col"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="h-full w-full bg-black/40 backdrop-blur-xl overflow-hidden flex flex-col"
             >
               <div className="flex-1 overflow-y-auto relative">
                 <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-white/50" /></div>}>
@@ -390,50 +707,79 @@ export default function App() {
             messages={chatMessages}
             onSendMessage={handleSendMessage}
             onClearChat={handleClearChat}
+            onStopGeneration={handleStopGeneration}
             isTyping={isTyping}
           />
         </Suspense>
       )}
 
-      {/* Bottom Navigation Bar - iOS Pro Dock Style */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
-        <div className="max-w-md mx-auto glass-dock liquid-glass p-2 flex flex-col items-center pointer-events-auto ios-shadow rounded-t-[2.5rem] border-b-0">
-          <div className="flex items-center justify-around w-full">
-            <button 
-              onClick={() => handleNavigate('home')}
-              className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'home' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
+      {/* Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex flex-col items-center justify-end pb-4">
+        <AnimatePresence>
+          {(activeTab === 'home' || activeTab === 'apps' || activeTab === 'status') && (
+            <motion.div 
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="max-w-[300px] w-full mx-auto glass-dock liquid-glass p-3 flex justify-around items-center pointer-events-auto ios-shadow rounded-[2rem] mb-4"
             >
-              <HomeIcon className="w-7 h-7" />
-            </button>
-            <button 
-              onClick={() => handleNavigate('image')}
-              className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'image' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
-            >
-              <ImageIcon className="w-7 h-7" />
-            </button>
-            <button 
-              onClick={() => handleNavigate('video')}
-              className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'video' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
-            >
-              <Video className="w-7 h-7" />
-            </button>
-            <button 
-              onClick={() => handleNavigate('voice')}
-              className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'voice' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
-            >
-              <Mic className="w-7 h-7" />
-            </button>
-            <button 
-              onClick={() => handleNavigate('status')}
-              className={`p-4 rounded-[1.5rem] transition-all duration-300 ${activeTab === 'status' ? (theme === 'light' ? 'bg-black/10 text-zinc-900 scale-110 shadow-lg' : 'bg-white/20 text-white scale-110 shadow-lg') : (theme === 'light' ? 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5' : 'text-white/40 hover:text-white/70 hover:bg-white/5')}`}
-            >
-              <Activity className="w-7 h-7" />
-            </button>
-          </div>
-          
-          {/* Home Indicator */}
-          <div className={`w-36 h-1.5 rounded-full mt-3 mb-1 ${theme === 'light' ? 'bg-zinc-800/30' : 'bg-white/20'}`} />
-        </div>
+              <button 
+                onClick={() => handleNavigate('home')}
+                className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'home' ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
+              >
+                <HomeIcon className="w-6 h-6" />
+                <span className="text-[10px] font-medium">Home</span>
+              </button>
+              <button 
+                onClick={() => handleNavigate('apps')}
+                className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'apps' ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
+              >
+                <LayoutGrid className="w-6 h-6" />
+                <span className="text-[10px] font-medium">Apps</span>
+              </button>
+              <button 
+                onClick={() => handleNavigate('status')}
+                className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'status' ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
+              >
+                <Settings className="w-6 h-6" />
+                <span className="text-[10px] font-medium">Settings</span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Home Indicator */}
+        <motion.div 
+          drag
+          dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(e, info) => {
+            if (info.offset.y < -30) {
+              handleNavigate('home');
+            } else if (info.offset.x > 50) {
+              handleBack();
+            } else if (info.offset.x < -50) {
+              handleForward();
+            }
+          }}
+          onPointerDown={() => {
+            const timer = setTimeout(() => {
+              setShowSiri(true);
+            }, 500);
+            // @ts-ignore
+            window.__siriTimer = timer;
+          }}
+          onPointerUp={() => {
+            // @ts-ignore
+            clearTimeout(window.__siriTimer);
+          }}
+          onPointerCancel={() => {
+            // @ts-ignore
+            clearTimeout(window.__siriTimer);
+          }}
+          onClick={() => handleNavigate('home')}
+          className={`w-36 h-1.5 rounded-full pointer-events-auto cursor-pointer hover:scale-110 transition-transform ${theme === 'light' ? 'bg-zinc-800/30 hover:bg-zinc-800/50' : 'bg-white/40 hover:bg-white/60'}`} 
+        />
       </div>
     </div>
   );

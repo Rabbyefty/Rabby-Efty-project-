@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Phone, Video, MessageCircle, Send, Search, MoreVertical, 
   PhoneCall, PhoneOff, Mic, MicOff, VideoOff, Camera, 
-  ArrowLeft, Check, CheckCheck, UserCircle2, ShieldCheck
+  ArrowLeft, Check, CheckCheck, UserCircle2, ShieldCheck, Sparkles
 } from 'lucide-react';
-import { auth, db } from '../firebase';
+import { auth, db, signInWithPhoneMock } from '../firebase';
 import { 
   RecaptchaVerifier, 
   signInWithPhoneNumber, 
@@ -19,6 +19,7 @@ import {
 } from 'firebase/firestore';
 import Peer, { MediaConnection } from 'peerjs';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GoogleGenAI } from '@google/genai';
 
 declare global {
   interface Window {
@@ -48,7 +49,7 @@ export function WhatsApp() {
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [countryCode, setCountryCode] = useState('+1');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState('123456');
   const [authStep, setAuthStep] = useState<'phone' | 'otp' | 'authenticated'>(user ? 'authenticated' : 'phone');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [authError, setAuthError] = useState('');
@@ -59,6 +60,8 @@ export function WhatsApp() {
   const [activeChat, setActiveChat] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [smartReplies, setSmartReplies] = useState<string[]>([]);
+  const [isGeneratingReplies, setIsGeneratingReplies] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Call State
@@ -117,30 +120,29 @@ export function WhatsApp() {
     setAuthError('');
     setIsLoading(true);
     try {
-      setupRecaptcha();
-      const formattedPhone = `${countryCode}${phoneNumber.replace(/\D/g, '')}`;
-      const result = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
-      setConfirmationResult(result);
-      setAuthStep('otp');
+      // Mock OTP sending
+      setTimeout(() => {
+        setAuthStep('otp');
+        setIsLoading(false);
+      }, 1500);
     } catch (error: any) {
       console.error(error);
-      setAuthError(error.message || 'Failed to send OTP. Ensure the domain is authorized in Firebase.');
-    } finally {
+      setAuthError(error.message || 'Failed to send OTP.');
       setIsLoading(false);
     }
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!confirmationResult) return;
     setAuthError('');
     setIsLoading(true);
     try {
-      await confirmationResult.confirm(otp);
+      const formattedPhone = `${countryCode}${phoneNumber.replace(/\D/g, '')}`;
+      await signInWithPhoneMock(formattedPhone);
       // Auth state observer will handle the rest
     } catch (error: any) {
       console.error(error);
-      setAuthError('Invalid OTP. Please try again.');
+      setAuthError('Failed to verify OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -159,10 +161,20 @@ export function WhatsApp() {
   useEffect(() => {
     if (!user) return;
 
-    // Fetch contacts (all users for demo purposes)
-    const q = query(collection(db, 'users'), where('uid', '!=', user.uid));
+    // Fetch contacts (all users for demo purposes, including self)
+    const q = query(collection(db, 'users'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const usersData: Contact[] = [];
+      
+      // Add AI Bot
+      usersData.push({
+        uid: 'ai_bot',
+        displayName: 'WhatsApp AI Assistant',
+        phoneNumber: 'AI Bot',
+        isOnline: true,
+        photoURL: 'https://api.dicebear.com/7.x/bottts/svg?seed=whatsapp'
+      });
+
       snapshot.forEach((doc) => {
         usersData.push(doc.data() as Contact);
       });
@@ -193,13 +205,90 @@ export function WhatsApp() {
         msgs.push({ id: doc.id, ...doc.data() } as Message);
       });
       setMessages(msgs);
+      
+      // Generate smart replies if the last message is from the other person
+      if (msgs.length > 0) {
+        const lastMessage = msgs[msgs.length - 1];
+        if (lastMessage.senderId !== user.uid) {
+          generateSmartReplies(lastMessage.text);
+        } else {
+          setSmartReplies([]);
+        }
+      }
+
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
+    }, (error) => {
+      console.error("Error fetching messages:", error);
     });
 
     return () => unsubscribe();
   }, [user, activeChat]);
+
+  const generateSmartReplies = async (text: string) => {
+    if (!process.env.GEMINI_API_KEY) {
+      // Fallback if no API key
+      setSmartReplies(['Ok', 'Thanks!', 'Sounds good.']);
+      return;
+    }
+
+    setIsGeneratingReplies(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Generate 3 short, conversational replies to this message: "${text}". Return ONLY a JSON array of 3 strings. Do not include markdown formatting or any other text.`,
+      });
+      
+      const replyText = response.text || '[]';
+      try {
+        // Strip markdown if present
+        const cleanedText = replyText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const replies = JSON.parse(cleanedText);
+        if (Array.isArray(replies) && replies.length > 0) {
+          setSmartReplies(replies.slice(0, 3));
+        }
+      } catch (e) {
+        console.error("Failed to parse smart replies:", e);
+        setSmartReplies(['Ok', 'Thanks!', 'Sounds good.']);
+      }
+    } catch (error) {
+      console.error("Error generating smart replies:", error);
+      setSmartReplies(['Ok', 'Thanks!', 'Sounds good.']);
+    } finally {
+      setIsGeneratingReplies(false);
+    }
+  };
+
+  const generateBotReply = async (text: string, chatId: string) => {
+    if (!process.env.GEMINI_API_KEY) return;
+    
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `You are a helpful WhatsApp AI assistant. Keep your replies concise and friendly, like a chat message. The user says: "${text}"`,
+      });
+      
+      if (response.text) {
+        const messagesRef = collection(db, 'chats', chatId, 'messages');
+        await addDoc(messagesRef, {
+          text: response.text,
+          senderId: 'ai_bot',
+          timestamp: serverTimestamp()
+        });
+        
+        await setDoc(doc(db, 'chats', chatId), {
+          participants: [user!.uid, 'ai_bot'],
+          lastMessage: response.text,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      }
+    } catch (error) {
+      console.error("Error generating bot reply:", error);
+    }
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,6 +313,11 @@ export function WhatsApp() {
         lastMessage: messageText,
         updatedAt: serverTimestamp()
       }, { merge: true });
+
+      // If chatting with AI bot, generate reply
+      if (activeChat.uid === 'ai_bot') {
+        generateBotReply(messageText, chatId);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -485,6 +579,7 @@ export function WhatsApp() {
                 required
                 maxLength={6}
               />
+              <p className="text-xs text-white/40 mt-2 text-center">Demo mode: Enter any 6 digits to verify.</p>
             </div>
             <button
               type="submit"
@@ -676,12 +771,16 @@ export function WhatsApp() {
                 </div>
                 <div className="flex-1 min-w-0 border-b border-white/5 pb-3">
                   <div className="flex justify-between items-baseline mb-1">
-                    <h3 className="text-white text-base truncate">{contact.displayName || contact.phoneNumber || 'Unknown'}</h3>
+                    <h3 className="text-white text-base truncate">
+                      {contact.uid === user?.uid ? `${contact.displayName || contact.phoneNumber || 'Unknown'} (You)` : (contact.displayName || contact.phoneNumber || 'Unknown')}
+                    </h3>
                     <span className="text-xs text-[#aebac1]">
                       {contact.isOnline ? 'Online' : ''}
                     </span>
                   </div>
-                  <p className="text-sm text-[#aebac1] truncate">Tap to chat</p>
+                  <p className="text-sm text-[#aebac1] truncate">
+                    {contact.uid === user?.uid ? 'Message yourself' : 'Tap to chat'}
+                  </p>
                 </div>
               </div>
             ))
@@ -768,6 +867,38 @@ export function WhatsApp() {
                   </div>
                 );
               })}
+              
+              {/* Smart Replies */}
+              {smartReplies.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2 justify-end">
+                  {smartReplies.map((reply, idx) => (
+                    <motion.button
+                      key={idx}
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      onClick={() => {
+                        setNewMessage(reply);
+                        // Optional: auto-send
+                        // handleSendMessage(new Event('submit') as any);
+                      }}
+                      className="bg-[#202c33] border border-[#2a3942] text-[#00a884] px-4 py-1.5 rounded-full text-sm font-medium hover:bg-[#2a3942] transition-colors shadow-sm flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      {reply}
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+              {isGeneratingReplies && (
+                <div className="flex justify-end mt-2">
+                  <div className="bg-[#202c33] px-4 py-2 rounded-full flex items-center gap-2">
+                    <Sparkles className="w-3 h-3 text-[#00a884] animate-pulse" />
+                    <span className="text-xs text-[#aebac1]">AI is thinking...</span>
+                  </div>
+                </div>
+              )}
+              
               <div ref={messagesEndRef} />
             </div>
 

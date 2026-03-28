@@ -10,6 +10,8 @@ export interface VFSNode {
   size?: number;
   createdAt: number;
   modifiedAt: number;
+  handle?: any; // FileSystemHandle
+  isDeviceRoot?: boolean;
 }
 
 interface VFSSchema extends DBSchema {
@@ -21,23 +23,51 @@ interface VFSSchema extends DBSchema {
       'by-type': string;
     };
   };
+  handles: {
+    key: string;
+    value: any; // FileSystemDirectoryHandle
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<VFSSchema>> | null = null;
 
 export const initVFS = () => {
   if (!dbPromise) {
-    dbPromise = openDB<VFSSchema>('iOS_VFS', 1, {
-      upgrade(db) {
+    dbPromise = openDB<VFSSchema>('iOS_VFS', 2, {
+      upgrade(db, oldVersion) {
         if (!db.objectStoreNames.contains('nodes')) {
           const store = db.createObjectStore('nodes', { keyPath: 'id' });
           store.createIndex('by-parent', 'parentId');
           store.createIndex('by-type', 'type');
         }
+        if (!db.objectStoreNames.contains('handles')) {
+          db.createObjectStore('handles');
+        }
       },
     });
   }
   return dbPromise;
+};
+
+export const storeDeviceHandle = async (handle: any): Promise<void> => {
+  const db = await initVFS();
+  await db.put('handles', handle, 'root');
+};
+
+export const getDeviceHandle = async (): Promise<any | undefined> => {
+  const db = await initVFS();
+  return db.get('handles', 'root');
+};
+
+export const verifyPermission = async (fileHandle: any, readWrite: boolean = false) => {
+  const options = { mode: readWrite ? 'readwrite' : 'read' };
+  if ((await fileHandle.queryPermission(options)) === 'granted') {
+    return true;
+  }
+  if ((await fileHandle.requestPermission(options)) === 'granted') {
+    return true;
+  }
+  return false;
 };
 
 export const getNodesByParent = async (parentId: string | null): Promise<VFSNode[]> => {

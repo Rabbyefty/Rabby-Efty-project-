@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Folder, File as FileIcon, Image as ImageIcon, Music, Video, 
   MoreHorizontal, Plus, Search, ChevronLeft, Trash2, Edit2, X, Download, Play, Pause,
-  LayoutGrid, List
+  LayoutGrid, List, HardDrive, Share, Upload
 } from 'lucide-react';
-import { VFSNode, getNodesByParent, addNode, deleteNode, renameNode, generateId, getNode, getAllFiles } from '../lib/vfs';
+import { VFSNode, getNodesByParent, addNode, deleteNode, renameNode, generateId, getNode, getAllFiles, verifyPermission } from '../lib/vfs';
 
 export function FileManager() {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -13,6 +13,7 @@ export function FileManager() {
   const [nodes, setNodes] = useState<VFSNode[]>([]);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [isConnectingDevice, setIsConnectingDevice] = useState(false);
   const [selectedNode, setSelectedNode] = useState<VFSNode | null>(null);
   const [previewNode, setPreviewNode] = useState<VFSNode | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -20,6 +21,7 @@ export function FileManager() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [activeTab, setActiveTab] = useState<'browse' | 'recents'>('browse');
   const [uploadingFiles, setUploadingFiles] = useState<{id: string, name: string, progress: number, mimeType: string}[]>([]);
+  const [needsPermission, setNeedsPermission] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -38,7 +40,78 @@ export function FileManager() {
       allFiles.sort((a, b) => b.createdAt - a.createdAt);
       setNodes(allFiles);
     } else {
-      const fetchedNodes = await getNodesByParent(currentFolderId);
+      let fetchedNodes = await getNodesByParent(currentFolderId);
+      setNeedsPermission(false);
+
+      if (currentFolderId) {
+        const currentNode = await getNode(currentFolderId);
+        if (currentNode?.handle && currentNode.handle.kind === 'directory') {
+          let hasPermission = false;
+          try {
+            hasPermission = (await currentNode.handle.queryPermission({ mode: 'readwrite' })) === 'granted';
+          } catch (e) {}
+          
+          if (hasPermission) {
+            try {
+              const currentEntries = new Map();
+              // @ts-ignore
+              for await (const entry of currentNode.handle.values()) {
+                currentEntries.set(entry.name, entry);
+              }
+              
+              let changed = false;
+              // Remove deleted
+              for (const node of fetchedNodes) {
+                if (!currentEntries.has(node.name)) {
+                  await deleteNode(node.id);
+                  changed = true;
+                }
+              }
+              
+              // Add new
+              const existingNames = new Set(fetchedNodes.map(n => n.name));
+              for (const [name, entry] of currentEntries.entries()) {
+                if (!existingNames.has(name)) {
+                  let size = 0;
+                  let mimeType = 'application/octet-stream';
+                  let lastModified = Date.now();
+                  
+                  if (entry.kind === 'file') {
+                    try {
+                      const file = await entry.getFile();
+                      size = file.size;
+                      mimeType = file.type || mimeType;
+                      lastModified = file.lastModified || lastModified;
+                    } catch (e) {}
+                  }
+                  
+                  await addNode({
+                    id: generateId(),
+                    name: entry.name,
+                    type: entry.kind === 'directory' ? 'folder' : 'file',
+                    parentId: currentFolderId,
+                    handle: entry,
+                    size,
+                    mimeType,
+                    createdAt: lastModified,
+                    modifiedAt: lastModified
+                  });
+                  changed = true;
+                }
+              }
+              
+              if (changed) {
+                fetchedNodes = await getNodesByParent(currentFolderId);
+              }
+            } catch (e) {
+              console.error("Error reading directory:", e);
+            }
+          } else {
+            setNeedsPermission(true);
+          }
+        }
+      }
+
       // Sort: Folders first, then alphabetically
       fetchedNodes.sort((a, b) => {
         if (a.type === b.type) return a.name.localeCompare(b.name);
@@ -50,11 +123,32 @@ export function FileManager() {
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
+    
+    let parentHandle = null;
+    if (currentFolderId) {
+      const currentNode = await getNode(currentFolderId);
+      if (currentNode?.handle && currentNode.handle.kind === 'directory') {
+        parentHandle = currentNode.handle;
+      }
+    }
+    
+    let newHandle = null;
+    if (parentHandle) {
+      try {
+        newHandle = await parentHandle.getDirectoryHandle(newFolderName.trim(), { create: true });
+      } catch (e) {
+        console.error("Failed to create directory on device", e);
+        alert("Failed to create folder on device.");
+        return;
+      }
+    }
+
     const newNode: VFSNode = {
       id: generateId(),
       name: newFolderName.trim(),
       type: 'folder',
       parentId: currentFolderId,
+      handle: newHandle,
       createdAt: Date.now(),
       modifiedAt: Date.now()
     };
@@ -64,9 +158,61 @@ export function FileManager() {
     loadNodes();
   };
 
+  const handleConnectDeviceFolder = async () => {
+    try {
+      setIsConnectingDevice(true);
+      // @ts-ignore
+      if (!window.showDirectoryPicker) {
+        alert("Your browser doesn't support direct folder access. Please use Chrome or Edge.");
+        return;
+      }
+      
+      // @ts-ignore
+      const dirHandle = await window.showDirectoryPicker({
+        mode: 'readwrite'
+      });
+      
+      const existingNodes = await getNodesByParent(currentFolderId);
+      const existing = existingNodes.find(n => n.name === dirHandle.name && n.handle);
+      
+      if (!existing) {
+        const deviceFolderId = generateId();
+        await addNode({
+          id: deviceFolderId,
+          name: dirHandle.name,
+          type: 'folder',
+          parentId: currentFolderId,
+          handle: dirHandle,
+          isDeviceRoot: true,
+          createdAt: Date.now(),
+          modifiedAt: Date.now()
+        });
+      }
+
+      await loadNodes();
+      window.dispatchEvent(new Event('vfs-updated'));
+      
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error("Error connecting device folder:", error);
+        alert("Could not access the folder. Permission might have been denied.");
+      }
+    } finally {
+      setIsConnectingDevice(false);
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
+    
+    let parentHandle = null;
+    if (currentFolderId) {
+      const currentNode = await getNode(currentFolderId);
+      if (currentNode?.handle && currentNode.handle.kind === 'directory') {
+        parentHandle = currentNode.handle;
+      }
+    }
     
     const newUploads = Array.from(files).map(file => ({
       id: generateId(),
@@ -87,12 +233,25 @@ export function FileManager() {
             progress = 100;
             clearInterval(interval);
             
+            let newHandle = null;
+            if (parentHandle) {
+              try {
+                newHandle = await parentHandle.getFileHandle(upload.file.name, { create: true });
+                const writable = await newHandle.createWritable();
+                await writable.write(upload.file);
+                await writable.close();
+              } catch (e) {
+                console.error("Failed to write to device", e);
+              }
+            }
+            
             const newNode: VFSNode = {
               id: upload.id,
               name: upload.file.name,
               type: 'file',
               parentId: currentFolderId,
-              data: upload.file,
+              data: parentHandle ? undefined : upload.file,
+              handle: newHandle,
               mimeType: upload.file.type,
               size: upload.file.size,
               createdAt: Date.now(),
@@ -127,6 +286,19 @@ export function FileManager() {
   };
 
   const handleDelete = async (id: string) => {
+    const node = await getNode(id);
+    if (node?.handle) {
+      try {
+        const parentNode = node.parentId ? await getNode(node.parentId) : null;
+        if (parentNode?.handle) {
+          await parentNode.handle.removeEntry(node.name, { recursive: true });
+        }
+      } catch (e) {
+        console.error("Failed to delete from device", e);
+        alert("Failed to delete from device.");
+        return;
+      }
+    }
     await deleteNode(id);
     setSelectedNode(null);
     loadNodes();
@@ -135,16 +307,92 @@ export function FileManager() {
   const handleRename = async (id: string, newName: string) => {
     const trimmed = newName.trim();
     if (trimmed) {
+      const node = await getNode(id);
+      if (node?.handle) {
+        alert("Renaming device files is not supported yet.");
+        return;
+      }
       await renameNode(id, trimmed);
       setSelectedNode(null);
       loadNodes();
     }
   };
 
+  const handleShare = async (node: VFSNode) => {
+    try {
+      let file: File | undefined;
+      
+      if (node.data instanceof File) {
+        file = node.data;
+      } else if (node.data instanceof Blob) {
+        file = new File([node.data], node.name, { type: node.mimeType || 'application/octet-stream' });
+      }
+      
+      if (!file && node.handle && node.handle.kind === 'file') {
+        const hasPermission = await verifyPermission(node.handle, false);
+        if (!hasPermission) {
+          alert("Permission to access this file is required.");
+          return;
+        }
+        file = await node.handle.getFile();
+      }
+
+      if (!file) {
+        const fullNode = await getNode(node.id);
+        if (fullNode?.data instanceof File) {
+          file = fullNode.data;
+        } else if (fullNode?.data instanceof Blob) {
+          file = new File([fullNode.data], fullNode.name, { type: fullNode.mimeType || 'application/octet-stream' });
+        }
+      }
+
+      if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: file.name,
+          text: `Sharing ${file.name}`
+        });
+      } else {
+        alert("Sharing files is not supported on this browser or device.");
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error("Error sharing file:", error);
+        alert("Could not share the file.");
+      }
+    }
+  };
+
   const openPreview = async (node: VFSNode) => {
     if (node.type === 'folder') {
+      if (node.handle) {
+        const hasPermission = await verifyPermission(node.handle, true);
+        if (!hasPermission) {
+          alert("Permission to access this folder is required.");
+          return;
+        }
+      }
       navigateToFolder(node);
       return;
+    }
+    
+    if (node.handle) {
+       const hasPermission = await verifyPermission(node.handle, true);
+       if (!hasPermission) {
+          alert("Permission to access this file is required.");
+          return;
+       }
+       try {
+         const file = await node.handle.getFile();
+         const url = URL.createObjectURL(file);
+         setPreviewUrl(url);
+         setPreviewNode({...node, data: file});
+         setIsPlaying(false);
+       } catch (e) {
+         console.error("Error reading file", e);
+         alert("Could not read the file from the device.");
+       }
+       return;
     }
     
     // Fetch full node to get data blob if not loaded
@@ -204,16 +452,27 @@ export function FileManager() {
               {viewMode === 'grid' ? <List className="w-5 h-5" /> : <LayoutGrid className="w-5 h-5" />}
             </button>
             {activeTab === 'browse' && (
-              <button 
-                onClick={() => setIsCreatingFolder(true)} 
-                className="flex items-center gap-1.5 bg-blue-500 text-white px-4 py-2 rounded-full font-medium shadow-sm hover:bg-blue-600 transition-colors active:scale-95"
-              >
-                <Plus className="w-5 h-5" />
-                <span className="text-sm">New Folder</span>
-              </button>
+              <>
+                <button 
+                  onClick={handleConnectDeviceFolder}
+                  disabled={isConnectingDevice}
+                  className="flex items-center gap-1.5 bg-zinc-800 text-white px-3 py-2 rounded-full font-medium shadow-sm hover:bg-zinc-700 transition-colors active:scale-95 disabled:opacity-50"
+                  title="Connect Device Folder"
+                >
+                  <HardDrive className="w-4 h-4" />
+                  <span className="text-xs hidden sm:inline">{isConnectingDevice ? 'Syncing...' : 'Sync Device'}</span>
+                </button>
+                <button 
+                  onClick={() => setIsCreatingFolder(true)} 
+                  className="flex items-center gap-1.5 bg-blue-500 text-white px-4 py-2 rounded-full font-medium shadow-sm hover:bg-blue-600 transition-colors active:scale-95"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="text-sm">New Folder</span>
+                </button>
+              </>
             )}
-            <button onClick={() => fileInputRef.current?.click()} className="p-2 text-blue-500 bg-blue-500/10 hover:bg-blue-500/20 rounded-full transition-colors active:scale-95">
-              <MoreHorizontal className="w-5 h-5" />
+            <button onClick={() => fileInputRef.current?.click()} className="p-2 text-blue-500 bg-blue-500/10 hover:bg-blue-500/20 rounded-full transition-colors active:scale-95" title="Upload File">
+              <Upload className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -240,23 +499,44 @@ export function FileManager() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-4">
-        {isCreatingFolder && (
-          <div className="flex items-center gap-3 p-3 bg-white dark:bg-zinc-900 rounded-xl mb-4 shadow-sm">
-            <Folder className="w-8 h-8 text-blue-400 fill-blue-400/20" />
-            <input
-              autoFocus
-              type="text"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
-              onBlur={() => setIsCreatingFolder(false)}
-              placeholder="New Folder"
-              className="flex-1 bg-transparent focus:outline-none text-lg"
-            />
+        {needsPermission ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-400 h-full">
+            <HardDrive className="w-16 h-16 mb-4 opacity-20" />
+            <p className="mb-6">Permission required to access this folder</p>
+            <button 
+              onClick={async () => {
+                const currentNode = await getNode(currentFolderId!);
+                if (currentNode?.handle) {
+                  const granted = await verifyPermission(currentNode.handle, true);
+                  if (granted) {
+                    loadNodes();
+                  }
+                }
+              }}
+              className="flex items-center gap-2 bg-blue-500 text-white px-6 py-3 rounded-full font-medium shadow-md hover:bg-blue-600 transition-colors active:scale-95"
+            >
+              Grant Permission
+            </button>
           </div>
-        )}
+        ) : (
+          <>
+            {isCreatingFolder && (
+              <div className="flex items-center gap-3 p-3 bg-white dark:bg-zinc-900 rounded-xl mb-4 shadow-sm">
+                <Folder className="w-8 h-8 text-blue-400 fill-blue-400/20" />
+                <input
+                  autoFocus
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+                  onBlur={() => setIsCreatingFolder(false)}
+                  placeholder="New Folder"
+                  className="flex-1 bg-transparent focus:outline-none text-lg"
+                />
+              </div>
+            )}
 
-        {viewMode === 'grid' ? (
+            {viewMode === 'grid' ? (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
             {uploadingFiles.map(file => (
               <div key={file.id} className="flex flex-col items-center gap-2 relative group opacity-60">
@@ -298,6 +578,18 @@ export function FileManager() {
                 {/* Context Menu Overlay (Simplified) */}
                 {selectedNode?.id === node.id && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-black/5 dark:border-white/10 z-20 w-40 overflow-hidden">
+                    {node.type === 'file' && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShare(node);
+                          setSelectedNode(null);
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 border-b border-black/5 dark:border-white/10"
+                      >
+                        <Share className="w-4 h-4" /> Share
+                      </button>
+                    )}
                     <button 
                       onClick={() => {
                         const newName = prompt('Rename:', node.name);
@@ -384,6 +676,18 @@ export function FileManager() {
                 {/* Context Menu Overlay */}
                 {selectedNode?.id === node.id && (
                   <div className="absolute right-12 top-1/2 -translate-y-1/2 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-black/5 dark:border-white/10 z-20 w-40 overflow-hidden">
+                    {node.type === 'file' && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShare(node);
+                          setSelectedNode(null);
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 border-b border-black/5 dark:border-white/10"
+                      >
+                        <Share className="w-4 h-4" /> Share
+                      </button>
+                    )}
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
@@ -423,6 +727,8 @@ export function FileManager() {
               </div>
             )}
           </div>
+        )}
+          </>
         )}
       </div>
 
@@ -464,7 +770,10 @@ export function FileManager() {
             <div className="flex justify-between items-center p-4 pt-12 text-white">
               <button onClick={closePreview} className="text-blue-400 font-medium">Done</button>
               <span className="font-semibold text-sm truncate max-w-[200px]">{previewNode.name}</span>
-              <button className="text-blue-400"><Download className="w-5 h-5" /></button>
+              <div className="flex items-center gap-4">
+                <button onClick={() => handleShare(previewNode)} className="text-blue-400"><Share className="w-5 h-5" /></button>
+                <button className="text-blue-400"><Download className="w-5 h-5" /></button>
+              </div>
             </div>
 
             <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
@@ -492,6 +801,7 @@ export function FileManager() {
                     onEnded={() => setIsPlaying(false)}
                     className="w-full"
                     controls
+                    autoPlay
                   />
                 </div>
               )}
