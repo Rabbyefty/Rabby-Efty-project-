@@ -4,10 +4,11 @@ import { Apps } from './components/Apps';
 import { StatusBar } from './components/StatusBar';
 import { UploadedFile, ChatMessage } from './types';
 import { initChatSession, sendChatMessage, restoreChatHistory } from './services/gemini';
-import { Menu, ChevronRight, Share, Battery, Wifi, Signal, Image as ImageIcon, Video, Mic, Sparkles, Shield, Globe, DownloadCloud, ThumbsUp, Smartphone, Home as HomeIcon, ArrowLeft, LogOut, User as UserIcon, Swords, Activity, Sun, Moon, CreditCard, Mail, Loader2, MessageCircle, Phone, Folder, LayoutGrid, Settings } from 'lucide-react';
+import { Menu, ChevronRight, Share, Battery, Wifi, Signal, Image as ImageIcon, Video, Mic, Sparkles, Shield, Globe, DownloadCloud, ThumbsUp, Smartphone, Home as HomeIcon, ArrowLeft, LogOut, User as UserIcon, Swords, Activity, Sun, Moon, CreditCard, Mail, Loader2, MessageCircle, Phone, Folder, LayoutGrid, Settings, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, signInWithGoogle, logout, onAuthStateChanged, User } from './firebase';
 import { populateDummyData } from './lib/populate';
+import { ThemeProvider, useTheme } from './ThemeContext';
 
 const Chatbot = lazy(() => import('./components/Chatbot').then(m => ({ default: m.Chatbot })));
 const ImageGenerator = lazy(() => import('./components/ImageGenerator').then(m => ({ default: m.ImageGenerator })));
@@ -26,8 +27,9 @@ const SystemStatus = lazy(() => import('./components/SystemStatus').then(m => ({
 const WhatsApp = lazy(() => import('./components/WhatsApp').then(m => ({ default: m.WhatsApp })));
 const FileManager = lazy(() => import('./components/FileManager').then(m => ({ default: m.FileManager })));
 const Gallery = lazy(() => import('./components/Gallery').then(m => ({ default: m.Gallery })));
+const SettingsApp = lazy(() => import('./components/SettingsApp').then(m => ({ default: m.SettingsApp })));
 
-type Tab = 'home' | 'apps' | 'image' | 'video' | 'voice' | 'vpn' | 'browser' | 'downloader' | 'fb-autolike' | 'build-apk' | 'arena-ai' | 'status' | 'card-gen' | 'temp-mail' | 'temp-number' | 'whatsapp' | 'file-manager' | 'gallery';
+type Tab = 'home' | 'apps' | 'image' | 'video' | 'voice' | 'vpn' | 'browser' | 'downloader' | 'fb-autolike' | 'build-apk' | 'arena-ai' | 'status' | 'card-gen' | 'temp-mail' | 'temp-number' | 'whatsapp' | 'file-manager' | 'gallery' | 'settings';
 
 const APPS = [
   { id: 'image', name: 'Image', icon: ImageIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
@@ -46,6 +48,7 @@ const APPS = [
   { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
   { id: 'file-manager', name: 'Files', icon: Folder, color: 'text-blue-400', bg: 'bg-blue-500/20' },
   { id: 'gallery', name: 'Photos', icon: ImageIcon, color: 'text-purple-400', bg: 'bg-purple-500/20' },
+  { id: 'settings', name: 'Settings', icon: Palette, color: 'text-zinc-400', bg: 'bg-zinc-500/20' },
 ];
 
 const DOCK_APPS = [
@@ -55,10 +58,10 @@ const DOCK_APPS = [
   { id: 'video', name: 'Video', icon: Video, color: 'text-purple-400', bg: 'bg-purple-500/20' },
   { id: 'vpn', name: 'VPN', icon: Shield, color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
   { id: 'arena-ai', name: 'Arena AI', icon: Swords, color: 'text-orange-400', bg: 'bg-orange-500/20' },
-  { id: 'status', name: 'Settings', icon: Activity, color: 'text-zinc-400', bg: 'bg-zinc-500/20' },
+  { id: 'settings', name: 'Settings', icon: Palette, color: 'text-zinc-400', bg: 'bg-zinc-500/20' },
 ];
 
-export default function App() {
+function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [history, setHistory] = useState<Tab[]>(['home']);
   const [forwardHistory, setForwardHistory] = useState<Tab[]>([]);
@@ -97,6 +100,8 @@ export default function App() {
     const saved = localStorage.getItem('theme');
     return (saved as 'light' | 'dark') || 'dark';
   });
+  
+  const { iconShape } = useTheme();
 
   useEffect(() => {
     localStorage.setItem('theme', theme);
@@ -312,10 +317,18 @@ export default function App() {
     }
     setTouchStart(null);
   };
+  
+  const getIconShapeClass = () => {
+    switch (iconShape) {
+      case 'circle': return 'rounded-full';
+      case 'square': return 'rounded-md';
+      case 'squircle': default: return 'rounded-[1.4rem]';
+    }
+  };
 
   if (isLocked) {
     return (
-      <div className="flex flex-col h-screen w-full overflow-hidden font-sans relative bg-black text-white">
+      <div className="flex flex-col h-full w-full overflow-hidden font-sans relative bg-black text-white">
         <div className="absolute inset-0 z-0">
           <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop" alt="Wallpaper" className="w-full h-full object-cover opacity-80" />
         </div>
@@ -327,10 +340,10 @@ export default function App() {
           
           <div className="mt-auto mb-12 flex flex-col items-center w-full px-8">
             <div className="flex justify-between w-full mb-8 px-4">
-              <button className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10">
+              <button className={`w-12 h-12 ${getIconShapeClass()} bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10`}>
                 <div className="w-5 h-5 rounded-full border-2 border-white/80" />
               </button>
-              <button className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10">
+              <button className={`w-12 h-12 ${getIconShapeClass()} bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10`}>
                 <ImageIcon className="w-5 h-5 text-white/80" />
               </button>
             </div>
@@ -356,7 +369,7 @@ export default function App() {
 
   return (
     <div 
-      className={`flex flex-col h-screen w-full overflow-hidden font-sans relative bg-transparent transition-all duration-700 ${theme === 'light' ? 'light text-zinc-900' : 'text-white'} ${isVpnConnected ? 'shadow-[inset_0_0_100px_rgba(34,197,94,0.15)]' : ''}`}
+      className={`flex flex-col h-full w-full overflow-hidden font-sans relative bg-transparent transition-all duration-700 ${theme === 'light' ? 'light text-zinc-900' : 'text-white'} ${isVpnConnected ? 'shadow-[inset_0_0_100px_rgba(34,197,94,0.15)]' : ''}`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onMouseDown={handleTouchStart}
@@ -414,17 +427,17 @@ export default function App() {
               {/* Connectivity */}
               <div className="bg-white/10 dark:bg-white/5 rounded-3xl p-4 grid grid-cols-2 gap-3 aspect-square backdrop-blur-md border border-white/10">
                 <button className="flex flex-col items-center justify-center gap-1">
-                  <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+                  <div className={`w-12 h-12 ${getIconShapeClass()} bg-blue-500 flex items-center justify-center shadow-lg`}>
                     <Wifi className="w-5 h-5 text-white" />
                   </div>
                 </button>
                 <button className="flex flex-col items-center justify-center gap-1">
-                  <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+                  <div className={`w-12 h-12 ${getIconShapeClass()} bg-blue-500 flex items-center justify-center shadow-lg`}>
                     <Signal className="w-5 h-5 text-white" />
                   </div>
                 </button>
                 <button className="flex flex-col items-center justify-center gap-1">
-                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                  <div className={`w-12 h-12 ${getIconShapeClass()} bg-white/20 flex items-center justify-center`}>
                     <Globe className="w-5 h-5 text-white" />
                   </div>
                 </button>
@@ -432,7 +445,7 @@ export default function App() {
                   onClick={() => setIsVpnConnected(!isVpnConnected)}
                   className="flex flex-col items-center justify-center gap-1"
                 >
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${isVpnConnected ? 'bg-green-500' : 'bg-white/20'}`}>
+                  <div className={`w-12 h-12 ${getIconShapeClass()} flex items-center justify-center shadow-lg transition-colors ${isVpnConnected ? 'bg-green-500' : 'bg-white/20'}`}>
                     <Shield className="w-5 h-5 text-white" />
                   </div>
                 </button>
@@ -442,14 +455,14 @@ export default function App() {
               <div className="bg-white/10 dark:bg-white/5 rounded-3xl p-4 flex flex-col justify-between aspect-square backdrop-blur-md border border-white/10">
                 <div className="flex justify-between items-center">
                   <span className="text-white/80 text-xs font-medium">Not Playing</span>
-                  <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                  <div className={`w-5 h-5 ${getIconShapeClass()} bg-white/20 flex items-center justify-center`}>
                     <Signal className="w-3 h-3 text-white" />
                   </div>
                 </div>
                 <div className="flex justify-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><ChevronRight className="w-4 h-4 rotate-180 text-white" /></div>
-                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><div className="w-3 h-3 bg-white" /></div>
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><ChevronRight className="w-4 h-4 text-white" /></div>
+                  <div className={`w-8 h-8 ${getIconShapeClass()} bg-white/10 flex items-center justify-center`}><ChevronRight className="w-4 h-4 rotate-180 text-white" /></div>
+                  <div className={`w-10 h-10 ${getIconShapeClass()} bg-white/20 flex items-center justify-center`}><div className="w-3 h-3 bg-white" /></div>
+                  <div className={`w-8 h-8 ${getIconShapeClass()} bg-white/10 flex items-center justify-center`}><ChevronRight className="w-4 h-4 text-white" /></div>
                 </div>
               </div>
 
@@ -475,7 +488,7 @@ export default function App() {
                 className="col-span-2 bg-white/10 dark:bg-white/5 rounded-3xl p-4 flex items-center justify-between backdrop-blur-md border border-white/10"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-indigo-500' : 'bg-orange-400'}`}>
+                  <div className={`w-10 h-10 ${getIconShapeClass()} flex items-center justify-center ${theme === 'dark' ? 'bg-indigo-500' : 'bg-orange-400'}`}>
                     {theme === 'dark' ? <Moon className="w-5 h-5 text-white" /> : <Sun className="w-5 h-5 text-white" />}
                   </div>
                   <span className="text-white font-medium">Dark Mode</span>
@@ -593,7 +606,7 @@ export default function App() {
                 className="w-full h-full flex items-center justify-between px-5"
               >
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
+                  <div className={`w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 ${getIconShapeClass()} flex items-center justify-center shadow-lg border border-white/20`}>
                     <Sparkles className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex flex-col">
@@ -681,9 +694,10 @@ export default function App() {
                   {activeTab === 'card-gen' && <CardGenerator isVpnConnected={isVpnConnected} />}
                   {activeTab === 'temp-mail' && <TempMail isVpnConnected={isVpnConnected} />}
                   {activeTab === 'temp-number' && <TempNumber isVpnConnected={isVpnConnected} />}
-                  {activeTab === 'whatsapp' && <WhatsApp />}
+                  {activeTab === 'whatsapp' && <WhatsApp onBack={handleBack} />}
                   {activeTab === 'file-manager' && <FileManager />}
                   {activeTab === 'gallery' && <Gallery />}
+                  {activeTab === 'settings' && <SettingsApp onBack={handleBack} />}
                   {activeTab === 'status' && <SystemStatus 
                     isVpnConnected={isVpnConnected} 
                     theme={theme}
@@ -714,9 +728,9 @@ export default function App() {
       )}
 
       {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex flex-col items-center justify-end pb-4">
+      <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-none flex flex-col items-center justify-end pb-4">
         <AnimatePresence>
-          {(activeTab === 'home' || activeTab === 'apps' || activeTab === 'status') && (
+          {(activeTab === 'home' || activeTab === 'apps' || activeTab === 'status' || activeTab === 'settings') && (
             <motion.div 
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -738,8 +752,8 @@ export default function App() {
                 <span className="text-[10px] font-medium">Apps</span>
               </button>
               <button 
-                onClick={() => handleNavigate('status')}
-                className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'status' ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
+                onClick={() => handleNavigate('settings')}
+                className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'settings' ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
               >
                 <Settings className="w-6 h-6" />
                 <span className="text-[10px] font-medium">Settings</span>
@@ -782,5 +796,17 @@ export default function App() {
         />
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <div className="w-full h-[100dvh] bg-black sm:py-4 flex items-center justify-center overflow-hidden">
+        <div className="w-full h-full sm:max-w-[440px] sm:max-h-[956px] sm:rounded-[3rem] sm:border-[8px] sm:border-zinc-900 overflow-hidden relative shadow-2xl bg-[#000]">
+          <AppContent />
+        </div>
+      </div>
+    </ThemeProvider>
   );
 }

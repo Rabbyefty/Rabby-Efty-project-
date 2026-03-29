@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTheme } from '../ThemeContext';
 
 interface ImageGeneratorProps {
   isVpnConnected?: boolean;
@@ -18,6 +19,7 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
   const [sourceImage, setSourceImage] = useState<{data: string, mimeType: string, url: string} | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const { iconShape } = useTheme();
   
   // Advanced settings
   const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('2K');
@@ -375,18 +377,40 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
     setPosition({ x: 0, y: 0 });
   };
 
-  return (
-    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-14 pb-24 relative z-10 flex flex-col items-center">
-      <div className="w-full max-w-3xl space-y-8">
-        <div className="text-center space-y-2">
-          <div className="w-16 h-16 glass-card rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-            <ImageIcon className="w-8 h-8 text-indigo-400" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">꧁Rᴀʙʙʏ Eғᴛʏ꧂ Image</h1>
-          <p className="text-white/60">Describe what you want to see, or upload an image to edit and enhance it.</p>
-        </div>
+  const getIconShapeClass = () => {
+    switch (iconShape) {
+      case 'circle': return 'rounded-full';
+      case 'square': return 'rounded-md';
+      case 'squircle': default: return 'rounded-2xl';
+    }
+  };
 
-        <Card className={`p-4 relative transition-all duration-500 ${isVpnConnected ? 'border-green-500/30 ring-1 ring-green-500/20' : 'border-white/10'}`}>
+  return (
+    <div className="flex flex-col h-full bg-black relative overflow-hidden">
+      {/* Header */}
+      <div className="p-4 pt-12 flex items-center justify-between z-10 glass-panel border-b border-white/5 sticky top-0">
+        <div className="flex items-center space-x-2">
+          <ImageIcon className="w-5 h-5 text-indigo-400" />
+          <h1 className="text-lg font-semibold tracking-tight">꧁Rᴀʙʙʏ Eғᴛʏ꧂ Image</h1>
+          {isVpnConnected && (
+            <div className="flex items-center space-x-1.5 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full ml-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-green-400">Secure</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-5 pb-safe relative z-10 flex flex-col items-center custom-scrollbar">
+        <div className="w-full max-w-3xl space-y-6">
+          <div className="text-center space-y-2 mt-2 mb-6">
+            <div className={`w-16 h-16 glass-card ${getIconShapeClass()} flex items-center justify-center mx-auto mb-4 shadow-sm`}>
+              <ImageIcon className="w-8 h-8 text-indigo-400" />
+            </div>
+            <p className="text-white/60 text-[15px]">Describe what you want to see, or upload an image to edit and enhance it.</p>
+          </div>
+
+          <Card className={`p-4 relative transition-all duration-500 ${isVpnConnected ? 'border-green-500/30 ring-1 ring-green-500/20' : 'border-white/10'}`}>
           <AnimatePresence>
             {isVpnConnected && (
               <motion.div
@@ -413,7 +437,7 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
                   <img src={sourceImage.url} alt="Source" className="h-40 w-auto object-cover" />
                   <button 
                     onClick={clearSourceImage}
-                    className="absolute top-2 right-2 w-7 h-7 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-colors"
+                    className={`absolute top-2 right-2 w-7 h-7 bg-black/50 hover:bg-black/70 text-white ${getIconShapeClass()} flex items-center justify-center backdrop-blur-md transition-colors`}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -436,7 +460,7 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
                 variant="outline"
                 size="icon"
                 onClick={() => fileInputRef.current?.click()}
-                className="h-14 w-14 rounded-full shrink-0 border-white/10 bg-white/5 hover:bg-white/10 text-indigo-400"
+                className={`h-14 w-14 ${getIconShapeClass()} shrink-0 border-white/10 bg-white/5 hover:bg-white/10 text-indigo-400`}
                 title="Upload image to edit"
               >
                 <Upload className="w-5 h-5" />
@@ -447,7 +471,7 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={sourceImage ? "How should ꧁Rᴀʙʙʏ Eғᴛʏ꧂ edit this?" : "Ask ꧁Rᴀʙʙʏ Eғᴛʏ꧂ to generate..."}
                   disabled={isGenerating || isRefining}
-                  className="w-full glass-input rounded-full pl-6 pr-12 h-14 text-base text-white placeholder:text-white/40 focus-visible:ring-0 focus-visible:ring-offset-0 border-none"
+                  className={`w-full glass-input ${getIconShapeClass()} pl-6 pr-12 h-14 text-base text-white placeholder:text-white/40 focus-visible:ring-0 focus-visible:ring-offset-0 border-none`}
                 />
                 {prompt && (
                   <button
@@ -465,7 +489,7 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
                 size="icon"
                 onClick={refinePrompt}
                 disabled={!prompt.trim() || isGenerating || isRefining}
-                className={`h-14 w-14 rounded-full shrink-0 border-white/10 bg-white/5 hover:bg-white/10 text-amber-400 transition-all ${isRefining ? 'animate-pulse' : ''}`}
+                className={`h-14 w-14 ${getIconShapeClass()} shrink-0 border-white/10 bg-white/5 hover:bg-white/10 text-amber-400 transition-all ${isRefining ? 'animate-pulse' : ''}`}
                 title="Magic Refine Prompt"
               >
                 {isRefining ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
@@ -477,7 +501,7 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
                 variant="outline"
                 size="icon"
                 onClick={() => setShowSettings(!showSettings)}
-                className={`h-14 w-14 rounded-full shrink-0 border-white/10 transition-colors ${showSettings ? 'bg-indigo-500 text-white' : 'bg-white/5 hover:bg-white/10 text-indigo-400'}`}
+                className={`h-14 w-14 ${getIconShapeClass()} shrink-0 border-white/10 transition-colors ${showSettings ? 'bg-indigo-500 text-white' : 'bg-white/5 hover:bg-white/10 text-indigo-400'}`}
                 title="Advanced Settings"
               >
                 <Settings2 className="w-5 h-5" />
@@ -485,7 +509,7 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
               <Button 
                 type="submit" 
                 disabled={(!prompt.trim() && !sourceImage) || isGenerating}
-                className="flex-1 md:flex-none h-14 px-8 rounded-full shadow-sm bg-indigo-500 hover:bg-indigo-600 text-white border-none shrink-0 font-bold"
+                className={`flex-1 md:flex-none h-14 px-8 ${getIconShapeClass()} shadow-sm bg-indigo-500 hover:bg-indigo-600 text-white border-none shrink-0 font-bold`}
               >
                 {isGenerating ? (
                   <>
@@ -846,8 +870,26 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
         )}
 
         <AnimatePresence mode="wait">
-          {(imageUrl || sourceImage) && (
+          {isGenerating ? (
             <motion.div
+              key="loading"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative rounded-[2.5rem] overflow-hidden glass-card shadow-xl border border-white/10 p-2 w-full aspect-square md:aspect-video flex items-center justify-center bg-white/5"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+              <div className="flex flex-col items-center justify-center space-y-4 z-10">
+                <div className="relative w-16 h-16">
+                  <div className="absolute inset-0 border-4 border-white/10 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin"></div>
+                </div>
+                <p className="text-indigo-300 font-medium animate-pulse">Generating your masterpiece...</p>
+              </div>
+            </motion.div>
+          ) : (imageUrl || sourceImage) ? (
+            <motion.div
+              key="image"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               className="relative rounded-[2.5rem] overflow-hidden glass-card shadow-xl border border-white/10 p-2 w-full"
@@ -934,8 +976,9 @@ export function ImageGenerator({ isVpnConnected }: ImageGeneratorProps) {
                 </div>
               )}
             </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
+        </div>
       </div>
     </div>
   );

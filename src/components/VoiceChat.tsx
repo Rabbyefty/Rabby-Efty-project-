@@ -279,14 +279,28 @@ export function VoiceChat({ isVpnConnected }: VoiceChatProps) {
   }, []);
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 lg:p-12 pt-14 pb-24 relative z-10 flex flex-col items-center justify-center min-h-full">
-      <div className="w-full max-w-md space-y-12 text-center">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-white">꧁Rᴀʙʙʏ Eғᴛʏ꧂ Voice</h1>
-          <p className="text-white/60">Have a real-time conversation with ꧁Rᴀʙʙʏ Eғᴛʏ꧂.</p>
+    <div className="flex flex-col h-full bg-black relative overflow-hidden">
+      {/* Header */}
+      <div className="p-4 pt-10 flex items-center justify-between z-10 glass-panel border-b border-white/5 sticky top-0">
+        <div className="flex items-center space-x-2">
+          <Mic className="w-5 h-5 text-pink-400" />
+          <h1 className="text-lg font-semibold tracking-tight">꧁Rᴀʙʙʏ Eғᴛʏ꧂ Voice</h1>
+          {isVpnConnected && (
+            <div className="flex items-center space-x-1.5 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full ml-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-green-400">Secure</span>
+            </div>
+          )}
         </div>
+      </div>
 
-        <div className="relative flex items-center justify-center py-12">
+      <div className="flex-1 overflow-y-auto p-5 pb-safe relative z-10 flex flex-col items-center justify-center custom-scrollbar">
+        <div className="w-full max-w-md space-y-8 text-center">
+          <div className="space-y-2">
+            <p className="text-white/60 text-[15px]">Have a real-time conversation with ꧁Rᴀʙʙʏ Eғᴛʏ꧂.</p>
+          </div>
+
+          <div className="relative flex items-center justify-center py-8">
           {isConnected && (
             <>
               <motion.div
@@ -409,6 +423,7 @@ export function VoiceChat({ isVpnConnected }: VoiceChatProps) {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
       </div>
     </div>
   );

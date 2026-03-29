@@ -24,6 +24,7 @@ import { GoogleGenAI } from '@google/genai';
 declare global {
   interface Window {
     recaptchaVerifier: any;
+    grecaptcha: any;
   }
 }
 
@@ -44,12 +45,16 @@ interface Message {
   timestamp: any;
 }
 
-export function WhatsApp() {
+interface WhatsAppProps {
+  onBack?: () => void;
+}
+
+export function WhatsApp({ onBack }: WhatsAppProps) {
   // Auth State
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [countryCode, setCountryCode] = useState('+1');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('123456');
+  const [otp, setOtp] = useState('');
   const [authStep, setAuthStep] = useState<'phone' | 'otp' | 'authenticated'>(user ? 'authenticated' : 'phone');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [authError, setAuthError] = useState('');
@@ -120,14 +125,22 @@ export function WhatsApp() {
     setAuthError('');
     setIsLoading(true);
     try {
-      // Mock OTP sending
-      setTimeout(() => {
-        setAuthStep('otp');
-        setIsLoading(false);
-      }, 1500);
+      setupRecaptcha();
+      const formattedPhone = `${countryCode}${phoneNumber.replace(/\D/g, '')}`;
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
+      setConfirmationResult(confirmation);
+      setAuthStep('otp');
+      setOtp(''); // Clear the default mock OTP
     } catch (error: any) {
       console.error(error);
       setAuthError(error.message || 'Failed to send OTP.');
+      // Reset recaptcha if error
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.render().then((widgetId: any) => {
+          window.grecaptcha?.reset(widgetId);
+        });
+      }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -137,8 +150,13 @@ export function WhatsApp() {
     setAuthError('');
     setIsLoading(true);
     try {
-      const formattedPhone = `${countryCode}${phoneNumber.replace(/\D/g, '')}`;
-      await signInWithPhoneMock(formattedPhone);
+      if (confirmationResult) {
+        await confirmationResult.confirm(otp);
+      } else {
+        // Fallback to mock if for some reason confirmationResult is missing (shouldn't happen in real flow)
+        const formattedPhone = `${countryCode}${phoneNumber.replace(/\D/g, '')}`;
+        await signInWithPhoneMock(formattedPhone);
+      }
       // Auth state observer will handle the rest
     } catch (error: any) {
       console.error(error);
@@ -471,7 +489,15 @@ export function WhatsApp() {
 
   if (authStep !== 'authenticated') {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-black/40 backdrop-blur-xl rounded-3xl p-6 text-white">
+      <div className="flex flex-col items-center justify-center h-full bg-black/40 backdrop-blur-xl rounded-3xl p-6 text-white relative">
+        {onBack && (
+          <button 
+            onClick={onBack}
+            className="absolute top-6 left-6 text-white/60 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+        )}
         <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.5)]">
           <MessageCircle className="w-8 h-8 text-white" />
         </div>
@@ -579,7 +605,6 @@ export function WhatsApp() {
                 required
                 maxLength={6}
               />
-              <p className="text-xs text-white/40 mt-2 text-center">Demo mode: Enter any 6 digits to verify.</p>
             </div>
             <button
               type="submit"
@@ -717,8 +742,16 @@ export function WhatsApp() {
       {/* Sidebar (Contacts) */}
       <div className={`w-full md:w-1/3 border-r border-white/10 flex flex-col bg-[#111b21] ${activeChat ? 'hidden md:flex' : 'flex'}`}>
         {/* Header */}
-        <div className="h-16 bg-[#202c33] flex items-center justify-between px-4 flex-shrink-0">
+        <div className="h-24 bg-[#202c33] flex items-center justify-between px-4 flex-shrink-0 pt-12">
           <div className="flex items-center gap-3">
+            {onBack && (
+              <button 
+                onClick={onBack}
+                className="text-[#aebac1] hover:text-white transition-colors mr-1"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            )}
             <div className="w-10 h-10 bg-gray-600 rounded-full overflow-hidden">
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
@@ -796,7 +829,7 @@ export function WhatsApp() {
         {activeChat ? (
           <>
             {/* Chat Header */}
-            <div className="h-16 bg-[#202c33] flex items-center justify-between px-4 z-10">
+            <div className="h-24 bg-[#202c33] flex items-center justify-between px-4 z-10 pt-12">
               <div className="flex items-center gap-3">
                 <button 
                   className="md:hidden text-[#aebac1] hover:text-white mr-1"
@@ -903,7 +936,7 @@ export function WhatsApp() {
             </div>
 
             {/* Input Area */}
-            <div className="h-16 bg-[#202c33] flex items-center px-4 gap-3 z-10">
+            <div className="bg-[#202c33] flex items-center px-4 py-3 pb-6 gap-3 z-10">
               <button className="text-[#aebac1] hover:text-white transition-colors">
                 <svg viewBox="0 0 24 24" width="24" height="24" className="fill-current"><path d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z"></path></svg>
               </button>

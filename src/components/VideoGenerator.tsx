@@ -285,7 +285,7 @@ export function VideoGenerator({ isVpnConnected }: VideoGeneratorProps) {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="p-4 flex items-center justify-between z-10 glass-panel border-b border-white/5 sticky top-0">
+      <div className="p-4 pt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 z-10 glass-panel border-b border-white/5 sticky top-0">
         <div className="flex items-center space-x-2">
           <Video className="w-5 h-5 text-indigo-400" />
           <h1 className="text-lg font-semibold tracking-tight">꧁Rᴀʙʙʏ Eғᴛʏ꧂ Video</h1>
@@ -296,22 +296,22 @@ export function VideoGenerator({ isVpnConnected }: VideoGeneratorProps) {
             </div>
           )}
         </div>
-        <div className="flex space-x-1 bg-white/5 p-1 rounded-lg border border-white/10">
+        <div className="flex space-x-1 bg-white/5 p-1 rounded-lg border border-white/10 w-full sm:w-auto overflow-x-auto hide-scrollbar">
           <button 
             onClick={() => setMode('generate')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${mode === 'generate' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}
+            className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${mode === 'generate' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}
           >
             Generate
           </button>
           <button 
             onClick={() => setMode('enhance')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${mode === 'enhance' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}
+            className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${mode === 'enhance' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}
           >
             Enhance
           </button>
           <button 
             onClick={() => setMode('edit')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${mode === 'edit' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}
+            className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${mode === 'edit' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-400 hover:text-white'}`}
           >
             Edit
           </button>
@@ -582,17 +582,21 @@ export function VideoGenerator({ isVpnConnected }: VideoGeneratorProps) {
 
           {isGenerating && (
             <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center space-y-4 my-12"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full aspect-video rounded-2xl overflow-hidden glass-card shadow-xl border border-white/10 p-2 flex items-center justify-center bg-white/5 mb-8"
             >
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 border-4 border-white/10 rounded-full"></div>
-                <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin"></div>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-medium text-white">{status}</p>
-                <p className="text-sm text-zinc-400">This might take a few minutes</p>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+              <div className="flex flex-col items-center justify-center space-y-4 z-10">
+                <div className="relative w-16 h-16">
+                  <div className="absolute inset-0 border-4 border-white/10 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin"></div>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-medium text-indigo-300 animate-pulse">{status}</p>
+                  <p className="text-sm text-zinc-400">This might take a few minutes</p>
+                </div>
               </div>
             </motion.div>
           )}

@@ -146,61 +146,8 @@ export function Browser({ isVpnConnected, setIsVpnConnected }: BrowserProps) {
     <div className="flex-1 flex flex-col h-full relative z-10 bg-white/95 backdrop-blur-2xl overflow-hidden border-white/20 shadow-2xl pt-12 pb-24">
       {/* Browser Toolbar */}
       <div className="bg-white/90 backdrop-blur-xl border-b border-zinc-200 p-3 flex flex-col space-y-3 shadow-sm">
-        <div className="flex items-center space-x-3 text-zinc-700">
-          <div className="flex items-center space-x-1.5">
-            <button 
-              onClick={goBack}
-              disabled={historyIndex === 0}
-              className="p-2.5 hover:bg-zinc-200/50 rounded-full transition-all disabled:opacity-20 active:scale-90"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={goForward}
-              disabled={historyIndex === history.length - 1}
-              className="p-2.5 hover:bg-zinc-200/50 rounded-full transition-all disabled:opacity-20 active:scale-90"
-            >
-              <ArrowRight className="w-5 h-5" />
-            </button>
-            <button 
-              className="p-2.5 hover:bg-zinc-200/50 rounded-full transition-all active:scale-90"
-              onClick={() => {
-                setIsLoading(true);
-                setLoadError(false);
-                // Force reload by slightly changing the URL if it's already the same
-                const currentUrl = url;
-                setUrl(null);
-                setTimeout(() => setUrl(currentUrl), 10);
-              }}
-            >
-              <RotateCw className={`w-5 h-5 ${isLoading ? 'animate-spin text-indigo-500' : ''}`} />
-            </button>
-            <button 
-              className="p-2.5 hover:bg-zinc-200/50 rounded-full transition-all active:scale-90"
-              onClick={() => navigateTo(homeUrl)}
-            >
-              <Home className="w-5 h-5" />
-            </button>
-            <div className="h-4 w-px bg-zinc-300 mx-1" />
-            <button 
-              onClick={toggleVpn}
-              disabled={isConnecting}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
-                isVpnConnected 
-                  ? 'bg-green-500/10 text-green-600 border border-green-500/20' 
-                  : 'bg-zinc-200 text-zinc-500 hover:bg-zinc-300 border border-transparent'
-              }`}
-            >
-              {isConnecting ? (
-                <RotateCw className="w-3 h-3 animate-spin" />
-              ) : (
-                <ShieldCheck className={`w-3 h-3 ${isVpnConnected ? 'text-green-500' : 'text-zinc-400'}`} />
-              )}
-              <span>{isConnecting ? 'Securing...' : isVpnConnected ? 'VPN ON' : 'VPN OFF'}</span>
-            </button>
-          </div>
-          
-          <form onSubmit={handleNavigate} className={`flex-1 flex items-center bg-white/60 backdrop-blur-md border rounded-full px-4 py-2 shadow-sm focus-within:bg-white/90 focus-within:shadow-[0_8px_32px_rgba(0,0,0,0.1)] focus-within:scale-[1.01] transition-all duration-300 ease-out ${isVpnConnected ? 'border-green-500/30 ring-1 ring-green-500/20' : 'border-white/60 focus-within:border-indigo-200'}`}>
+        <div className="flex flex-col space-y-3 text-zinc-700">
+          <form onSubmit={handleNavigate} className={`w-full flex items-center bg-white/60 backdrop-blur-md border rounded-full px-4 py-2 shadow-sm focus-within:bg-white/90 focus-within:shadow-[0_8px_32px_rgba(0,0,0,0.1)] focus-within:scale-[1.01] transition-all duration-300 ease-out ${isVpnConnected ? 'border-green-500/30 ring-1 ring-green-500/20' : 'border-white/60 focus-within:border-indigo-200'}`}>
             <AnimatePresence mode="wait">
               {isVpnConnected ? (
                 <motion.div
@@ -226,7 +173,7 @@ export function Browser({ isVpnConnected, setIsVpnConnected }: BrowserProps) {
               type="text" 
               value={inputUrl}
               onChange={(e) => setInputUrl(e.target.value)}
-              className="flex-1 bg-transparent text-sm outline-none text-zinc-800 placeholder:text-zinc-400"
+              className="flex-1 bg-transparent text-[15px] outline-none text-zinc-800 placeholder:text-zinc-400"
               placeholder={isVpnConnected ? "Browsing securely via VPN..." : "Search or enter URL..."}
             />
             <button 
@@ -246,6 +193,61 @@ export function Browser({ isVpnConnected, setIsVpnConnected }: BrowserProps) {
               <ExternalLink className="w-3.5 h-3.5" />
             </button>
           </form>
+
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center space-x-1">
+              <button 
+                onClick={goBack}
+                disabled={historyIndex === 0}
+                className="p-2 hover:bg-zinc-200/50 rounded-full transition-all disabled:opacity-20 active:scale-90"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={goForward}
+                disabled={historyIndex === history.length - 1}
+                className="p-2 hover:bg-zinc-200/50 rounded-full transition-all disabled:opacity-20 active:scale-90"
+              >
+                <ArrowRight className="w-5 h-5" />
+              </button>
+              <button 
+                className="p-2 hover:bg-zinc-200/50 rounded-full transition-all active:scale-90"
+                onClick={() => {
+                  setIsLoading(true);
+                  setLoadError(false);
+                  // Force reload by slightly changing the URL if it's already the same
+                  const currentUrl = url;
+                  setUrl(null);
+                  setTimeout(() => setUrl(currentUrl), 10);
+                }}
+              >
+                <RotateCw className={`w-5 h-5 ${isLoading ? 'animate-spin text-indigo-500' : ''}`} />
+              </button>
+              <button 
+                className="p-2 hover:bg-zinc-200/50 rounded-full transition-all active:scale-90"
+                onClick={() => navigateTo(homeUrl)}
+              >
+                <Home className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <button 
+              onClick={toggleVpn}
+              disabled={isConnecting}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+                isVpnConnected 
+                  ? 'bg-green-500/10 text-green-600 border border-green-500/20' 
+                  : 'bg-zinc-200 text-zinc-500 hover:bg-zinc-300 border border-transparent'
+              }`}
+            >
+              {isConnecting ? (
+                <RotateCw className="w-3 h-3 animate-spin" />
+              ) : (
+                <ShieldCheck className={`w-3 h-3 ${isVpnConnected ? 'text-green-500' : 'text-zinc-400'}`} />
+              )}
+              <span>{isConnecting ? 'Securing...' : isVpnConnected ? 'VPN ON' : 'VPN OFF'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Secondary Toolbar: Proxy & Info */}

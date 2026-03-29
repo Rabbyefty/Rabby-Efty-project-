@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, Image as ImageIcon, Video, Mic, Shield, Globe, DownloadCloud, ThumbsUp, Smartphone, Swords, Activity, CreditCard, Mail, MessageCircle, Phone, Folder, Cloud, Battery, Calendar, Search, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTheme } from '../ThemeContext';
 
 interface HomeProps {
   onNavigate: (tab: any) => void;
@@ -10,6 +11,7 @@ interface HomeProps {
 export function Home({ onNavigate, recentApps }: HomeProps) {
   const [currentWidget, setCurrentWidget] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { iconShape, iconSize } = useTheme();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -28,6 +30,22 @@ export function Home({ onNavigate, recentApps }: HomeProps) {
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
+  };
+
+  const getIconShapeClass = () => {
+    switch (iconShape) {
+      case 'circle': return 'rounded-full';
+      case 'square': return 'rounded-md';
+      case 'squircle': default: return 'rounded-[1.4rem]';
+    }
+  };
+
+  const getIconSizeClass = () => {
+    switch (iconSize) {
+      case 'small': return 'w-[50px] h-[50px]';
+      case 'large': return 'w-[70px] h-[70px]';
+      case 'medium': default: return 'w-[60px] h-[60px]';
+    }
   };
 
   return (
@@ -152,7 +170,7 @@ export function Home({ onNavigate, recentApps }: HomeProps) {
                   onClick={() => onNavigate(app.id)}
                   className="flex flex-col items-center space-y-2 group snap-start flex-shrink-0"
                 >
-                  <div className={`w-[60px] h-[60px] rounded-[1.4rem] ${app.bg} flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2)] border border-white/20 backdrop-blur-3xl transition-all duration-300 group-hover:scale-105 group-active:scale-95 relative overflow-hidden`}>
+                  <div className={`${getIconSizeClass()} ${getIconShapeClass()} ${app.bg} flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2)] border border-white/20 backdrop-blur-3xl transition-all duration-300 group-hover:scale-105 group-active:scale-95 relative overflow-hidden`}>
                     {/* Glossy top reflection */}
                     <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
                     {/* Diagonal light sweep */}

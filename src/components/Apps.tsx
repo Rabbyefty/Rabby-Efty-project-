@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Image as ImageIcon, Video, Mic, Shield, Globe, DownloadCloud, ThumbsUp, Smartphone, Swords, Activity, CreditCard, Mail, MessageCircle, Phone, Folder, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTheme } from '../ThemeContext';
 
 interface AppsProps {
   onNavigate: (tab: any) => void;
@@ -12,8 +13,15 @@ export function Apps({ onNavigate, isVpnConnected, setIsVpnConnected }: AppsProp
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { iconShape, iconSize } = useTheme();
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (showSearch && searchInputRef.current) {
@@ -52,6 +60,22 @@ export function Apps({ onNavigate, isVpnConnected, setIsVpnConnected }: AppsProp
   ];
 
   const filteredApps = apps.filter(app => app.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const getIconShapeClass = () => {
+    switch (iconShape) {
+      case 'circle': return 'rounded-full';
+      case 'square': return 'rounded-md';
+      case 'squircle': default: return 'rounded-[1.4rem]';
+    }
+  };
+
+  const getIconSizeClass = () => {
+    switch (iconSize) {
+      case 'small': return 'w-[50px] h-[50px]';
+      case 'large': return 'w-[70px] h-[70px]';
+      case 'medium': default: return 'w-[60px] h-[60px]';
+    }
+  };
 
   return (
     <motion.div 
@@ -117,29 +141,38 @@ export function Apps({ onNavigate, isVpnConnected, setIsVpnConnected }: AppsProp
                       transition={{ delay: idx * 0.05, type: 'spring', stiffness: 300, damping: 20 }}
                       className="relative flex flex-col items-center"
                     >
-                      <button
-                        onClick={() => onNavigate(app.id)}
-                        className="flex flex-col items-center space-y-1 group w-full"
-                      >
-                        <div className={`w-[60px] h-[60px] rounded-[1.4rem] ${app.bg} flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2)] border ${app.id === 'vpn' ? (isVpnConnected ? 'border-green-400/50' : 'border-white/20') : 'border-white/20'} backdrop-blur-3xl transition-all duration-300 group-hover:scale-105 group-active:scale-95 relative overflow-hidden`}>
-                          {/* Glossy top reflection */}
-                          <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
-                          {/* Diagonal light sweep */}
-                          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/5 pointer-events-none" />
-                          <app.icon className={`w-8 h-8 ${app.color} drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] relative z-10`} strokeWidth={1.5} />
+                      {isLoading ? (
+                        <div className="flex flex-col items-center space-y-1 w-full animate-pulse">
+                          <div className={`${getIconSizeClass()} ${getIconShapeClass()} bg-white/10`} />
+                          <div className="h-3 w-12 bg-white/10 rounded-full mt-1" />
                         </div>
-                        <span className="text-[11px] font-medium text-white/90 truncate w-full text-center drop-shadow-md tracking-wide">{app.name}</span>
-                      </button>
-                      {app.id === 'vpn' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsVpnConnected(!isVpnConnected);
-                          }}
-                          className={`absolute -top-1 -right-1 w-8 h-4 rounded-full p-0.5 transition-colors shadow-md z-10 ${isVpnConnected ? 'bg-green-500' : 'bg-gray-500'}`}
-                        >
-                          <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${isVpnConnected ? 'translate-x-4' : 'translate-x-0'}`} />
-                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => onNavigate(app.id)}
+                            className="flex flex-col items-center space-y-1 group w-full"
+                          >
+                            <div className={`${getIconSizeClass()} ${getIconShapeClass()} ${app.bg} flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2)] border ${app.id === 'vpn' ? (isVpnConnected ? 'border-green-400/50' : 'border-white/20') : 'border-white/20'} backdrop-blur-3xl transition-all duration-300 group-hover:scale-105 group-active:scale-95 relative overflow-hidden`}>
+                              {/* Glossy top reflection */}
+                              <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
+                              {/* Diagonal light sweep */}
+                              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/5 pointer-events-none" />
+                              <app.icon className={`w-8 h-8 ${app.color} drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] relative z-10`} strokeWidth={1.5} />
+                            </div>
+                            <span className="text-[11px] font-medium text-white/90 truncate w-full text-center drop-shadow-md tracking-wide">{app.name}</span>
+                          </button>
+                          {app.id === 'vpn' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsVpnConnected(!isVpnConnected);
+                              }}
+                              className={`absolute -top-1 -right-1 w-8 h-4 rounded-full p-0.5 transition-colors shadow-md z-10 ${isVpnConnected ? 'bg-green-500' : 'bg-gray-500'}`}
+                            >
+                              <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${isVpnConnected ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
+                          )}
+                        </>
                       )}
                     </motion.div>
                   ))}

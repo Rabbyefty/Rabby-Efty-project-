@@ -6,6 +6,7 @@ import { Input } from './ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './ui/card';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
+import { useTheme } from '../ThemeContext';
 
 interface ChatbotProps {
   messages: ChatMessage[];
@@ -23,6 +24,7 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevIsTyping = useRef(isTyping);
+  const { iconShape, keyboardLayout } = useTheme();
 
   useEffect(() => {
     if (prevIsTyping.current && !isTyping && autoSpeak && messages.length > 0) {
@@ -102,18 +104,30 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
     }
   };
 
+  const getIconShapeClass = () => {
+    switch (iconShape) {
+      case 'circle': return 'rounded-full';
+      case 'square': return 'rounded-md';
+      case 'squircle': default: return 'rounded-[1.4rem]';
+    }
+  };
+
   return (
     <>
       <AnimatePresence>
         {!isOpen && (
           <motion.button
+            drag
+            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            dragElastic={0.1}
+            dragMomentum={false}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-40 right-4 w-14 h-14 bg-indigo-500/90 backdrop-blur-xl text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-indigo-600 transition-all z-[90] border border-white/20 active:scale-95 liquid-glass"
+            className={`absolute bottom-40 right-4 w-14 h-14 bg-indigo-500/90 backdrop-blur-xl text-white ${getIconShapeClass()} shadow-2xl flex items-center justify-center hover:bg-indigo-600 transition-all z-[90] border border-white/20 active:scale-95 liquid-glass cursor-move`}
           >
             <MessageSquare className="w-6 h-6" />
           </motion.button>
@@ -123,15 +137,19 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            drag
+            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            dragElastic={0.1}
+            dragMomentum={false}
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-40 right-4 w-[calc(100vw-2rem)] sm:w-96 h-[600px] max-h-[calc(100vh-20rem)] z-[90] flex flex-col shadow-2xl rounded-[2.5rem] overflow-hidden glass-panel border border-white/10 liquid-glass"
+            className="absolute bottom-40 right-4 w-[calc(100vw-2rem)] sm:w-96 h-[600px] max-h-[calc(100vh-20rem)] z-[90] flex flex-col shadow-2xl rounded-[2.5rem] overflow-hidden glass-panel border border-white/10 liquid-glass cursor-move"
           >
-            <div className="flex items-center justify-between p-5 bg-black/40 backdrop-blur-xl border-b border-white/10">
+            <div className="flex items-center justify-between p-5 bg-black/40 backdrop-blur-xl border-b border-white/10 cursor-move">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shadow-sm">
+                <div className={`w-8 h-8 ${getIconShapeClass()} bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shadow-sm`}>
                   <Bot className="w-4 h-4 text-indigo-400" />
                 </div>
                 <h3 className="font-semibold text-white">꧁Rᴀʙʙʏ Eғᴛʏ꧂</h3>
@@ -219,7 +237,7 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
                             </div>
                           </div>
                         )}
-                        <div className="text-sm prose prose-sm max-w-none prose-invert relative group">
+                        <div className="text-[15px] prose prose-sm max-w-none prose-invert prose-p:leading-relaxed prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 relative group">
                           <Markdown>{msg.text}</Markdown>
                           
                           {msg.role === 'model' && (
@@ -286,25 +304,18 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex flex-col items-start space-y-2"
+                  className="flex flex-col items-start space-y-2 mt-4"
                 >
-                  <div className="glass-card rounded-3xl rounded-tl-sm px-5 py-3.5 shadow-sm flex items-center space-x-3 border border-white/10">
-                    <div className="flex space-x-1.5 items-center">
-                      <motion.div
-                        className="w-2 h-2 bg-indigo-400 rounded-full"
-                        animate={{ y: [0, -5, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                      />
-                      <motion.div
-                        className="w-2 h-2 bg-indigo-400 rounded-full"
-                        animate={{ y: [0, -5, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                      />
-                      <motion.div
-                        className="w-2 h-2 bg-indigo-400 rounded-full"
-                        animate={{ y: [0, -5, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                      />
+                  <div className="glass-card rounded-3xl rounded-tl-sm px-5 py-4 shadow-sm border border-white/10 w-[85%] max-w-[300px] relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Bot className="w-3 h-3 text-indigo-400/50" />
+                      <div className="h-2 w-16 bg-white/10 rounded-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-3 w-full bg-white/10 rounded-full" />
+                      <div className="h-3 w-5/6 bg-white/10 rounded-full" />
+                      <div className="h-3 w-4/6 bg-white/10 rounded-full" />
                     </div>
                   </div>
                   
@@ -322,29 +333,50 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-4 bg-black/40 backdrop-blur-xl border-t border-white/10">
-              <form onSubmit={handleSubmit} className="flex space-x-2">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask ꧁Rᴀʙʙʏ Eғᴛʏ꧂..."
-                  disabled={isTyping || isRefining}
-                  className="flex-1 glass-input rounded-full px-4 text-white placeholder:text-white/40 focus-visible:ring-0 focus-visible:ring-offset-0 border-none"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={refinePrompt}
-                  disabled={!input.trim() || isTyping || isRefining}
-                  className={`rounded-full shadow-sm bg-white/5 hover:bg-white/10 text-amber-400 border-none transition-all ${isRefining ? 'animate-pulse' : ''}`}
-                  title="Enhance Prompt"
-                >
-                  {isRefining ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                </Button>
-                <Button type="submit" size="icon" disabled={!input.trim() || isTyping || isRefining} className="rounded-full shadow-sm bg-indigo-500 hover:bg-indigo-600 text-white border-none">
-                  <Send className="w-4 h-4" />
-                </Button>
+            <div className={`bg-black/40 backdrop-blur-xl border-t border-white/10 pb-safe transition-all duration-300 ${
+              keyboardLayout === 'compact' ? 'p-2' : 
+              keyboardLayout === 'floating' ? 'm-4 p-3 rounded-3xl border border-white/20 shadow-2xl' : 
+              'p-4'
+            }`}>
+              {messages.length === 0 && (
+                <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-3 pb-1">
+                  {['Tell me a joke', 'Write a poem', 'Explain quantum physics', 'Give me a recipe'].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => setInput(suggestion)}
+                      className="whitespace-nowrap px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white/80 transition-colors"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <form onSubmit={handleSubmit} className="flex space-x-3 items-end">
+                <div className="flex-1 relative">
+                  <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Ask ꧁Rᴀʙʙʏ Eғᴛʏ꧂..."
+                    disabled={isTyping || isRefining}
+                    className="w-full glass-input rounded-[1.4rem] px-5 py-4 min-h-[52px] text-[15px] text-white placeholder:text-white/40 focus-visible:ring-0 focus-visible:ring-offset-0 border-none shadow-inner"
+                  />
+                </div>
+                <div className="flex space-x-2 mb-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={refinePrompt}
+                    disabled={!input.trim() || isTyping || isRefining}
+                    className={`w-11 h-11 rounded-full shadow-sm bg-white/5 hover:bg-white/10 text-amber-400 border-none transition-all ${isRefining ? 'animate-pulse' : ''}`}
+                    title="Enhance Prompt"
+                  >
+                    {isRefining ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
+                  </Button>
+                  <Button type="submit" size="icon" disabled={!input.trim() || isTyping || isRefining} className="w-11 h-11 rounded-full shadow-md bg-indigo-500 hover:bg-indigo-600 text-white border-none transition-transform active:scale-95">
+                    <Send className="w-5 h-5 ml-0.5" />
+                  </Button>
+                </div>
               </form>
             </div>
           </motion.div>

@@ -186,7 +186,7 @@ export function FbAutoLike({ isVpnConnected }: FbAutoLikeProps) {
                     <LinkIcon className="h-5 w-5 text-white/30" />
                   </div>
                   <Input
-                    type="url"
+                    type="text"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="Paste your post link here..."
