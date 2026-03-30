@@ -41,22 +41,22 @@ export function Apps({ onNavigate, isVpnConnected, setIsVpnConnected }: AppsProp
   };
 
   const apps = [
-    { id: 'build-apk', name: 'APK Builder', icon: Smartphone, color: 'text-green-400', bg: 'bg-green-500/20' },
-    { id: 'image', name: 'Image', icon: ImageIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
-    { id: 'video', name: 'Video', icon: Video, color: 'text-purple-400', bg: 'bg-purple-500/20' },
-    { id: 'voice', name: 'Voice', icon: Mic, color: 'text-pink-400', bg: 'bg-pink-500/20' },
-    { id: 'vpn', name: 'VPN', icon: Shield, color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
-    { id: 'browser', name: 'Browser', icon: Globe, color: 'text-blue-400', bg: 'bg-blue-500/20' },
-    { id: 'downloader', name: 'Downloader', icon: DownloadCloud, color: 'text-cyan-400', bg: 'bg-cyan-500/20' },
-    { id: 'status', name: 'Status', icon: Activity, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
-    { id: 'card-gen', name: 'Card Gen', icon: CreditCard, color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
-    { id: 'arena-ai', name: 'Arena AI', icon: Swords, color: 'text-orange-400', bg: 'bg-orange-500/20' },
-    { id: 'fb-autolike', name: 'FB Liker', icon: ThumbsUp, color: 'text-blue-500', bg: 'bg-blue-600/20' },
-    { id: 'temp-mail', name: 'Temp Mail', icon: Mail, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
-    { id: 'temp-number', name: 'Temp Number', icon: Phone, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
-    { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
-    { id: 'file-manager', name: 'Files', icon: Folder, color: 'text-blue-400', bg: 'bg-blue-500/20' },
-    { id: 'gallery', name: 'Photos', icon: ImageIcon, color: 'text-purple-400', bg: 'bg-purple-500/20' },
+    { id: 'build-apk', name: 'APK Builder', icon: Smartphone, color: 'text-white', bg: 'bg-gradient-to-br from-green-400 to-emerald-600' },
+    { id: 'image', name: 'Image', icon: ImageIcon, color: 'text-white', bg: 'bg-gradient-to-br from-indigo-500 to-purple-600' },
+    { id: 'video', name: 'Video', icon: Video, color: 'text-white', bg: 'bg-gradient-to-br from-purple-500 to-pink-600' },
+    { id: 'voice', name: 'Voice', icon: Mic, color: 'text-white', bg: 'bg-gradient-to-br from-pink-500 to-rose-500' },
+    { id: 'vpn', name: 'VPN', icon: Shield, color: 'text-white', bg: 'bg-gradient-to-br from-emerald-400 to-teal-600' },
+    { id: 'browser', name: 'Browser', icon: Globe, color: 'text-white', bg: 'bg-gradient-to-br from-blue-400 to-blue-600' },
+    { id: 'downloader', name: 'Downloader', icon: DownloadCloud, color: 'text-white', bg: 'bg-gradient-to-br from-cyan-400 to-blue-500' },
+    { id: 'status', name: 'Status', icon: Activity, color: 'text-white', bg: 'bg-gradient-to-br from-indigo-400 to-blue-600' },
+    { id: 'card-gen', name: 'Card Gen', icon: CreditCard, color: 'text-white', bg: 'bg-gradient-to-br from-emerald-500 to-green-600' },
+    { id: 'arena-ai', name: 'Arena AI', icon: Swords, color: 'text-white', bg: 'bg-gradient-to-br from-orange-400 to-red-500' },
+    { id: 'fb-autolike', name: 'FB Liker', icon: ThumbsUp, color: 'text-white', bg: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
+    { id: 'temp-mail', name: 'Temp Mail', icon: Mail, color: 'text-white', bg: 'bg-gradient-to-br from-violet-500 to-purple-600' },
+    { id: 'temp-number', name: 'Temp Number', icon: Phone, color: 'text-white', bg: 'bg-gradient-to-br from-indigo-500 to-blue-600' },
+    { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-white', bg: 'bg-gradient-to-br from-green-500 to-emerald-600' },
+    { id: 'file-manager', name: 'Files', icon: Folder, color: 'text-white', bg: 'bg-gradient-to-br from-blue-400 to-indigo-500' },
+    { id: 'gallery', name: 'Photos', icon: ImageIcon, color: 'text-white', bg: 'bg-gradient-to-br from-purple-400 to-fuchsia-500' },
   ];
 
   const filteredApps = apps.filter(app => app.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -152,11 +152,13 @@ export function Apps({ onNavigate, isVpnConnected, setIsVpnConnected }: AppsProp
                             onClick={() => onNavigate(app.id)}
                             className="flex flex-col items-center space-y-1 group w-full"
                           >
-                            <div className={`${getIconSizeClass()} ${getIconShapeClass()} ${app.bg} flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2)] border ${app.id === 'vpn' ? (isVpnConnected ? 'border-green-400/50' : 'border-white/20') : 'border-white/20'} backdrop-blur-3xl transition-all duration-300 group-hover:scale-105 group-active:scale-95 relative overflow-hidden`}>
+                            <div className={`${getIconSizeClass()} ${getIconShapeClass()} ${app.bg} flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.2)] border ${app.id === 'vpn' ? (isVpnConnected ? 'border-green-400/50' : 'border-white/30') : 'border-white/30'} backdrop-blur-xl transition-all duration-300 group-hover:scale-105 group-active:scale-95 relative overflow-hidden`}>
                               {/* Glossy top reflection */}
-                              <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
+                              <div className="absolute top-0 left-0 right-0 h-[45%] bg-gradient-to-b from-white/40 to-white/5 pointer-events-none rounded-t-[inherit]" />
                               {/* Diagonal light sweep */}
-                              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/5 pointer-events-none" />
+                              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-black/20 pointer-events-none" />
+                              {/* Inner shadow for depth */}
+                              <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(255,255,255,0.1)] pointer-events-none rounded-[inherit]" />
                               <app.icon className={`w-8 h-8 ${app.color} drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] relative z-10`} strokeWidth={1.5} />
                             </div>
                             <span className="text-[11px] font-medium text-white/90 truncate w-full text-center drop-shadow-md tracking-wide">{app.name}</span>

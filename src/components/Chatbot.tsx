@@ -38,12 +38,18 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
 
   useEffect(() => {
     const loadVoices = () => {
-      setVoices(window.speechSynthesis.getVoices());
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        setVoices(window.speechSynthesis.getVoices());
+      }
     };
     loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
     return () => {
-      window.speechSynthesis.onvoiceschanged = null;
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
     };
   }, []);
 
@@ -158,7 +164,7 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
                 <button
                   onClick={() => {
                     setAutoSpeak(!autoSpeak);
-                    if (autoSpeak) window.speechSynthesis.cancel();
+                    if (autoSpeak && 'speechSynthesis' in window) window.speechSynthesis.cancel();
                   }}
                   className={`p-2 rounded-full transition-colors ${autoSpeak ? 'bg-indigo-500/20 text-indigo-400' : 'hover:bg-white/10 text-zinc-400 hover:text-white'}`}
                   title={autoSpeak ? "Disable Auto-Voice" : "Enable Auto-Voice"}
@@ -242,7 +248,7 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
                           
                           {msg.role === 'model' && (
                             <button
-                              onClick={() => isSpeaking === msg.id ? window.speechSynthesis.cancel() : speakText(msg.text, msg.id)}
+                              onClick={() => isSpeaking === msg.id ? ('speechSynthesis' in window && window.speechSynthesis.cancel()) : speakText(msg.text, msg.id)}
                               className={`absolute -right-2 -top-2 p-1.5 rounded-full bg-zinc-800 border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-zinc-700 shadow-lg z-10`}
                               title={isSpeaking === msg.id ? "Stop speaking" : "Speak response"}
                             >

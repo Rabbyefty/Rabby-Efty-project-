@@ -6,6 +6,7 @@ import {
   LayoutGrid, List, HardDrive, Share, Upload
 } from 'lucide-react';
 import { VFSNode, getNodesByParent, addNode, deleteNode, renameNode, generateId, getNode, getAllFiles, verifyPermission } from '../lib/vfs';
+import { getMimeType } from '../lib/mime';
 
 export function FileManager() {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -80,9 +81,11 @@ export function FileManager() {
                     try {
                       const file = await entry.getFile();
                       size = file.size;
-                      mimeType = file.type || mimeType;
+                      mimeType = getMimeType(entry.name, file.type);
                       lastModified = file.lastModified || lastModified;
                     } catch (e) {}
+                  } else {
+                    mimeType = 'folder';
                   }
                   
                   await addNode({
@@ -219,7 +222,7 @@ export function FileManager() {
       file,
       name: file.name,
       progress: 0,
-      mimeType: file.type
+      mimeType: getMimeType(file.name, file.type)
     }));
 
     setUploadingFiles(prev => [...prev, ...newUploads.map(u => ({ id: u.id, name: u.name, progress: 0, mimeType: u.mimeType }))]);
@@ -252,7 +255,7 @@ export function FileManager() {
               parentId: currentFolderId,
               data: parentHandle ? undefined : upload.file,
               handle: newHandle,
-              mimeType: upload.file.type,
+              mimeType: getMimeType(upload.file.name, upload.file.type),
               size: upload.file.size,
               createdAt: Date.now(),
               modifiedAt: Date.now()
@@ -386,7 +389,7 @@ export function FileManager() {
          const file = await node.handle.getFile();
          const url = URL.createObjectURL(file);
          setPreviewUrl(url);
-         setPreviewNode({...node, data: file});
+         setPreviewNode({...node, data: file, mimeType: getMimeType(node.name, file.type)});
          setIsPlaying(false);
        } catch (e) {
          console.error("Error reading file", e);
@@ -400,7 +403,7 @@ export function FileManager() {
     if (fullNode?.data) {
       const url = URL.createObjectURL(fullNode.data);
       setPreviewUrl(url);
-      setPreviewNode(fullNode);
+      setPreviewNode({...fullNode, mimeType: getMimeType(fullNode.name, fullNode.mimeType)});
       setIsPlaying(false);
     }
   };
@@ -423,9 +426,10 @@ export function FileManager() {
 
   const getIcon = (node: VFSNode) => {
     if (node.type === 'folder') return <Folder className="w-12 h-12 text-blue-400 fill-blue-400/20" />;
-    if (node.mimeType?.startsWith('image/')) return <ImageIcon className="w-12 h-12 text-purple-400" />;
-    if (node.mimeType?.startsWith('audio/')) return <Music className="w-12 h-12 text-pink-400" />;
-    if (node.mimeType?.startsWith('video/')) return <Video className="w-12 h-12 text-indigo-400" />;
+    const mime = getMimeType(node.name, node.mimeType);
+    if (mime.startsWith('image/')) return <ImageIcon className="w-12 h-12 text-purple-400" />;
+    if (mime.startsWith('audio/')) return <Music className="w-12 h-12 text-pink-400" />;
+    if (mime.startsWith('video/')) return <Video className="w-12 h-12 text-indigo-400" />;
     return <FileIcon className="w-12 h-12 text-gray-400" />;
   };
 
@@ -614,13 +618,22 @@ export function FileManager() {
                 <Folder className="w-16 h-16 mb-4 opacity-20" />
                 <p className="mb-6">{activeTab === 'recents' ? 'No recent files' : 'Folder is empty'}</p>
                 {activeTab === 'browse' && (
-                  <button 
-                    onClick={() => setIsCreatingFolder(true)}
-                    className="flex items-center gap-2 bg-blue-500 text-white px-6 py-3 rounded-full font-medium shadow-md hover:bg-blue-600 transition-colors active:scale-95"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Create New Folder
-                  </button>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => setIsCreatingFolder(true)}
+                      className="flex items-center gap-2 bg-blue-500 text-white px-6 py-3 rounded-full font-medium shadow-md hover:bg-blue-600 transition-colors active:scale-95"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Create New Folder
+                    </button>
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 bg-zinc-800 text-white px-6 py-3 rounded-full font-medium shadow-md hover:bg-zinc-700 transition-colors active:scale-95"
+                    >
+                      <Upload className="w-5 h-5" />
+                      Upload File
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -716,13 +729,22 @@ export function FileManager() {
                 <Folder className="w-16 h-16 mb-4 opacity-20" />
                 <p className="mb-6">{activeTab === 'recents' ? 'No recent files' : 'Folder is empty'}</p>
                 {activeTab === 'browse' && (
-                  <button 
-                    onClick={() => setIsCreatingFolder(true)}
-                    className="flex items-center gap-2 bg-blue-500 text-white px-6 py-3 rounded-full font-medium shadow-md hover:bg-blue-600 transition-colors active:scale-95"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Create New Folder
-                  </button>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => setIsCreatingFolder(true)}
+                      className="flex items-center gap-2 bg-blue-500 text-white px-6 py-3 rounded-full font-medium shadow-md hover:bg-blue-600 transition-colors active:scale-95"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Create New Folder
+                    </button>
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 bg-zinc-800 text-white px-6 py-3 rounded-full font-medium shadow-md hover:bg-zinc-700 transition-colors active:scale-95"
+                    >
+                      <Upload className="w-5 h-5" />
+                      Upload File
+                    </button>
+                  </div>
                 )}
               </div>
             )}

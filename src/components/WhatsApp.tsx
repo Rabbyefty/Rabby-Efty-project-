@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore';
 import Peer, { MediaConnection } from 'peerjs';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 
 declare global {
   interface Window {
@@ -79,6 +79,16 @@ export function WhatsApp({ onBack }: WhatsAppProps) {
   const [isVideoCall, setIsVideoCall] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+
+  // AI Call State
+  const [isAiCall, setIsAiCall] = useState(false);
+  const sessionRef = useRef<any>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const playbackCtxRef = useRef<AudioContext | null>(null);
+  const nextPlayTimeRef = useRef<number>(0);
+  const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -373,8 +383,171 @@ export function WhatsApp({ onBack }: WhatsAppProps) {
     };
   }, [user]);
 
+  const startAiCall = async () => {
+    setIsAiCall(true);
+    setCallState('calling');
+    setIsVideoCall(false);
+    
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('API Key is missing.');
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      
+      playbackCtxRef.current = new AudioContext({ sampleRate: 24000 });
+      if (playbackCtxRef.current.state === 'suspended') {
+        await playbackCtxRef.current.resume();
+      }
+      nextPlayTimeRef.current = playbackCtxRef.current.currentTime;
+
+      const sessionPromise = ai.live.connect({
+        model: "gemini-3.1-flash-live-preview",
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } }
+          },
+          systemInstruction: "You are WhatsApp AI Assistant. Keep your responses concise and conversational.",
+        },
+        callbacks: {
+          onopen: async () => {
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1 } });
+              streamRef.current = stream;
+              setLocalStream(stream);
+              
+              audioCtxRef.current = new AudioContext({ sampleRate: 16000 });
+              if (audioCtxRef.current.state === 'suspended') {
+                await audioCtxRef.current.resume();
+              }
+              const source = audioCtxRef.current.createMediaStreamSource(stream);
+              const processor = audioCtxRef.current.createScriptProcessor(4096, 1, 1);
+              
+              const session = await sessionPromise;
+              
+              processor.onaudioprocess = (e) => {
+                const channelData = e.inputBuffer.getChannelData(0);
+                const pcm16 = new Int16Array(channelData.length);
+                for (let i = 0; i < channelData.length; i++) {
+                  pcm16[i] = Math.max(-1, Math.min(1, channelData[i])) * 0x7FFF;
+                }
+                const buffer = new Uint8Array(pcm16.buffer);
+                let binary = '';
+                for (let i = 0; i < buffer.byteLength; i++) {
+                  binary += String.fromCharCode(buffer[i]);
+                }
+                const base64 = btoa(binary);
+                session.sendRealtimeInput({ audio: { data: base64, mimeType: 'audio/pcm;rate=16000' } });
+              };
+              
+              source.connect(processor);
+              processor.connect(audioCtxRef.current.destination);
+              processorRef.current = processor;
+              
+              setCallState('connected');
+            } catch (err) {
+              console.error("Mic error:", err);
+              endAiCall();
+            }
+          },
+          onmessage: (message: LiveServerMessage) => {
+            if (message.serverContent?.interrupted) {
+              activeSourcesRef.current.forEach(source => {
+                try { source.stop(); } catch (e) {}
+              });
+              activeSourcesRef.current = [];
+              if (playbackCtxRef.current) {
+                nextPlayTimeRef.current = playbackCtxRef.current.currentTime;
+              }
+            }
+            
+            const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+            if (base64Audio && playbackCtxRef.current) {
+              const binaryString = atob(base64Audio);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              
+              const audioBuffer = playbackCtxRef.current.createBuffer(1, bytes.length / 2, 24000);
+              const channelData = audioBuffer.getChannelData(0);
+              const dataView = new DataView(bytes.buffer);
+              for (let i = 0; i < channelData.length; i++) {
+                channelData[i] = dataView.getInt16(i * 2, true) / 0x8000;
+              }
+              
+              const source = playbackCtxRef.current.createBufferSource();
+              source.buffer = audioBuffer;
+              source.connect(playbackCtxRef.current.destination);
+              
+              const currentTime = playbackCtxRef.current.currentTime;
+              const playTime = Math.max(currentTime, nextPlayTimeRef.current);
+              source.start(playTime);
+              
+              nextPlayTimeRef.current = playTime + audioBuffer.duration;
+              activeSourcesRef.current.push(source);
+              
+              source.onended = () => {
+                activeSourcesRef.current = activeSourcesRef.current.filter(s => s !== source);
+              };
+            }
+          },
+          onclose: () => {
+            endAiCall();
+          },
+          onerror: (err) => {
+            console.error("Live API Error:", err);
+            endAiCall();
+          }
+        }
+      });
+      
+      sessionRef.current = await sessionPromise;
+    } catch (err) {
+      console.error("Failed to start AI call:", err);
+      endAiCall();
+    }
+  };
+
+  const endAiCall = () => {
+    if (sessionRef.current) {
+      try { sessionRef.current.close(); } catch (e) {}
+      sessionRef.current = null;
+    }
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
+    }
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close();
+      audioCtxRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    if (playbackCtxRef.current) {
+      playbackCtxRef.current.close();
+      playbackCtxRef.current = null;
+    }
+    activeSourcesRef.current = [];
+    setIsAiCall(false);
+    setCallState('idle');
+    setIsMuted(false);
+    setLocalStream(null);
+  };
+
   const startCall = async (video: boolean) => {
-    if (!peer || !activeChat || !user) return;
+    if (!activeChat || !user) return;
+    
+    if (activeChat.uid === 'ai_bot') {
+      startAiCall();
+      return;
+    }
+
+    if (!peer) return;
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video, audio: true });
@@ -432,6 +605,10 @@ export function WhatsApp({ onBack }: WhatsAppProps) {
   };
 
   const endCall = () => {
+    if (isAiCall) {
+      endAiCall();
+      return;
+    }
     if (currentCall) {
       currentCall.close();
     }
@@ -455,12 +632,18 @@ export function WhatsApp({ onBack }: WhatsAppProps) {
   };
 
   const toggleMute = () => {
+    const newMutedState = !isMuted;
     if (localStream) {
       localStream.getAudioTracks().forEach(track => {
-        track.enabled = !track.enabled;
+        track.enabled = !newMutedState;
       });
-      setIsMuted(!isMuted);
     }
+    if (streamRef.current && streamRef.current !== localStream) {
+      streamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = !newMutedState;
+      });
+    }
+    setIsMuted(newMutedState);
   };
 
   const toggleVideo = () => {
@@ -663,8 +846,12 @@ export function WhatsApp({ onBack }: WhatsAppProps) {
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center">
-                  <div className="w-32 h-32 bg-green-500/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                    <UserCircle2 className="w-16 h-16 text-green-500" />
+                  <div className="w-32 h-32 bg-green-500/20 rounded-full flex items-center justify-center mb-6 animate-pulse overflow-hidden">
+                    {activeChat?.photoURL ? (
+                      <img src={activeChat.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <UserCircle2 className="w-16 h-16 text-green-500" />
+                    )}
                   </div>
                   <h2 className="text-3xl text-white font-medium mb-2">
                     {activeChat?.displayName || activeChat?.phoneNumber || 'Unknown'}
@@ -672,7 +859,7 @@ export function WhatsApp({ onBack }: WhatsAppProps) {
                   <p className="text-white/60 text-lg">
                     {callState === 'calling' ? 'Calling...' : 
                      callState === 'receiving' ? 'Incoming audio call...' : 
-                     '00:00'}
+                     isAiCall ? 'Listening...' : '00:00'}
                   </p>
                 </div>
               )}

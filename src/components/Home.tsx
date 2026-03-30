@@ -170,11 +170,13 @@ export function Home({ onNavigate, recentApps }: HomeProps) {
                   onClick={() => onNavigate(app.id)}
                   className="flex flex-col items-center space-y-2 group snap-start flex-shrink-0"
                 >
-                  <div className={`${getIconSizeClass()} ${getIconShapeClass()} ${app.bg} flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.2)] border border-white/20 backdrop-blur-3xl transition-all duration-300 group-hover:scale-105 group-active:scale-95 relative overflow-hidden`}>
+                  <div className={`${getIconSizeClass()} ${getIconShapeClass()} ${app.bg} flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(255,255,255,0.5),inset_0_-2px_4px_rgba(0,0,0,0.2)] border border-white/30 backdrop-blur-xl transition-all duration-300 group-hover:scale-105 group-active:scale-95 relative overflow-hidden`}>
                     {/* Glossy top reflection */}
-                    <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
+                    <div className="absolute top-0 left-0 right-0 h-[45%] bg-gradient-to-b from-white/40 to-white/5 pointer-events-none rounded-t-[inherit]" />
                     {/* Diagonal light sweep */}
-                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/5 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-black/20 pointer-events-none" />
+                    {/* Inner shadow for depth */}
+                    <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(255,255,255,0.1)] pointer-events-none rounded-[inherit]" />
                     <app.icon className={`w-8 h-8 ${app.color} drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] relative z-10`} strokeWidth={1.5} />
                   </div>
                   <span className="text-xs font-medium text-white/90 truncate w-16 text-center drop-shadow-md tracking-wide">{app.name}</span>
@@ -186,13 +188,15 @@ export function Home({ onNavigate, recentApps }: HomeProps) {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <button onClick={() => onNavigate('browser')} className="bg-white/10 dark:bg-black/20 rounded-[2rem] p-5 backdrop-blur-xl border border-white/20 shadow-xl flex flex-col items-center justify-center gap-3 ios-shadow hover:bg-white/20 transition-colors">
-            <Globe className="w-8 h-8 text-blue-400" />
-            <span className="text-white font-medium">Browser</span>
+          <button onClick={() => onNavigate('browser')} className="bg-gradient-to-br from-blue-500/80 to-blue-700/80 rounded-[2rem] p-5 backdrop-blur-xl border border-white/30 shadow-xl flex flex-col items-center justify-center gap-3 ios-shadow hover:scale-105 transition-all relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-black/20 pointer-events-none" />
+            <Globe className="w-8 h-8 text-white drop-shadow-md relative z-10" />
+            <span className="text-white font-medium relative z-10 drop-shadow-md">Browser</span>
           </button>
-          <button onClick={() => onNavigate('gallery')} className="bg-white/10 dark:bg-black/20 rounded-[2rem] p-5 backdrop-blur-xl border border-white/20 shadow-xl flex flex-col items-center justify-center gap-3 ios-shadow hover:bg-white/20 transition-colors">
-            <ImageIcon className="w-8 h-8 text-purple-400" />
-            <span className="text-white font-medium">Photos</span>
+          <button onClick={() => onNavigate('gallery')} className="bg-gradient-to-br from-purple-500/80 to-fuchsia-600/80 rounded-[2rem] p-5 backdrop-blur-xl border border-white/30 shadow-xl flex flex-col items-center justify-center gap-3 ios-shadow hover:scale-105 transition-all relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-black/20 pointer-events-none" />
+            <ImageIcon className="w-8 h-8 text-white drop-shadow-md relative z-10" />
+            <span className="text-white font-medium relative z-10 drop-shadow-md">Photos</span>
           </button>
         </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Shield, Battery, Wifi, Signal, Cpu, HardDrive, Activity, Zap, Globe, Clock, Server, Smartphone, CheckCircle2, AlertCircle, Sun, Moon, LogOut, User as UserIcon, ChevronRight, Info, Download, Settings, Languages, X, Check } from 'lucide-react';
+import { Shield, Battery, Wifi, Signal, Cpu, HardDrive, Activity, Zap, Globe, Clock, Server, Smartphone, CheckCircle2, AlertCircle, Sun, Moon, LogOut, User as UserIcon, ChevronRight, Info, Download, Settings, Languages, X, Check, Share2 } from 'lucide-react';
 import { Card } from './ui/card';
 import { User } from '../firebase';
 
@@ -321,7 +321,7 @@ export const SystemStatus = ({
 
               <button 
                 onClick={() => setShowLanguageRegion(true)}
-                className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${theme === 'light' ? 'bg-black/5 hover:bg-black/10 text-zinc-900' : 'bg-white/5 hover:bg-white/10 text-white'}`}
+                className={`w-full flex items-center justify-between px-4 py-3 transition-colors border-b ${theme === 'light' ? 'bg-black/5 border-black/10 hover:bg-black/10 text-zinc-900' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`}
               >
                 <div className="flex items-center space-x-3">
                   <div className="w-7 h-7 rounded-lg bg-indigo-500 text-white flex items-center justify-center">
@@ -331,6 +331,36 @@ export const SystemStatus = ({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`text-sm ${theme === 'light' ? 'text-zinc-500' : 'text-white/50'}`}>{activeLanguage}</span>
+                  <ChevronRight className={`w-4 h-4 ${theme === 'light' ? 'text-zinc-400' : 'text-white/30'}`} />
+                </div>
+              </button>
+
+              <button 
+                onClick={async () => {
+                  try {
+                    if (navigator.share) {
+                      await navigator.share({
+                        title: '꧁Rᴀʙʙʏ Eғᴛʏ꧂ OS',
+                        text: 'Check out this awesome cloud OS with AI tools, VPN, and more!',
+                        url: window.location.href,
+                      });
+                    } else {
+                      await navigator.clipboard.writeText(window.location.href);
+                      alert('App link copied to clipboard!');
+                    }
+                  } catch (err) {
+                    console.error('Error sharing:', err);
+                  }
+                }}
+                className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${theme === 'light' ? 'bg-black/5 hover:bg-black/10 text-zinc-900' : 'bg-white/5 hover:bg-white/10 text-white'}`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center">
+                    <Share2 className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium">Share App</span>
+                </div>
+                <div className="flex items-center gap-2">
                   <ChevronRight className={`w-4 h-4 ${theme === 'light' ? 'text-zinc-400' : 'text-white/30'}`} />
                 </div>
               </button>

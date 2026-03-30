@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { motion, AnimatePresence } from 'motion/react';
+import { GoogleGenAI } from '@google/genai';
 
 interface BuildApkProps {
   isVpnConnected?: boolean;
@@ -41,15 +42,54 @@ export function BuildApk({ isVpnConnected }: BuildApkProps) {
     setBuildLogs([]);
     setProgress(0);
 
-    // Simulate build logs
-    for (let i = 0; i < logs.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 600 + Math.random() * 1000));
-      setBuildLogs(prev => [...prev, logs[i]]);
-      setProgress(Math.round(((i + 1) / logs.length) * 100));
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) throw new Error('API Key missing');
+      
+      const ai = new GoogleGenAI({ apiKey });
+      
+      // Start initial logs
+      setBuildLogs(["Initializing build environment...", "Analyzing target URL..."]);
+      setProgress(10);
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Analyze this URL: ${url} for an app named "${appName}". Generate 8 realistic Android APK build log steps (like fetching assets, configuring manifest, compiling, signing). Return ONLY a JSON array of strings.`,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+      
+      let dynamicLogs = logs.slice(2);
+      try {
+        const parsedLogs = JSON.parse(response.text || '[]');
+        if (Array.isArray(parsedLogs) && parsedLogs.length > 0) {
+          dynamicLogs = parsedLogs;
+        }
+      } catch (e) {
+        console.error("Failed to parse AI logs", e);
+      }
+
+      // Simulate build logs with dynamic content
+      for (let i = 0; i < dynamicLogs.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 600 + Math.random() * 1000));
+        setBuildLogs(prev => [...prev, dynamicLogs[i]]);
+        setProgress(Math.round(10 + ((i + 1) / dynamicLogs.length) * 90));
+      }
+      
+      setIsSuccess(true);
+    } catch (err) {
+      console.error("Build failed:", err);
+      // Fallback to static logs
+      for (let i = 0; i < logs.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 600 + Math.random() * 1000));
+        setBuildLogs(prev => [...prev, logs[i]]);
+        setProgress(Math.round(((i + 1) / logs.length) * 100));
+      }
+      setIsSuccess(true);
+    } finally {
+      setIsProcessing(false);
     }
-    
-    setIsProcessing(false);
-    setIsSuccess(true);
   };
 
   const handleDownload = () => {

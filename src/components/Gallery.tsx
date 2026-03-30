@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Share, Trash2, Heart, Play, Sparkles } from 'lucide-react';
+import { ChevronLeft, Share, Trash2, Heart, Play, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { VFSNode, getAllFiles, getNode, deleteNode } from '../lib/vfs';
+import { getMimeType } from '../lib/mime';
 import { GoogleGenAI } from '@google/genai';
 
 export function Gallery() {
@@ -21,9 +22,10 @@ export function Gallery() {
 
   const loadMedia = async () => {
     const allFiles = await getAllFiles();
-    const media = allFiles.filter(f => 
-      f.mimeType?.startsWith('image/') || f.mimeType?.startsWith('video/')
-    );
+    const media = allFiles.filter(f => {
+      const mime = getMimeType(f.name, f.mimeType);
+      return mime.startsWith('image/') || mime.startsWith('video/');
+    });
     // Sort by newest first
     media.sort((a, b) => b.createdAt - a.createdAt);
     setMediaFiles(media);
@@ -34,7 +36,7 @@ export function Gallery() {
     if (fullNode?.data) {
       const url = URL.createObjectURL(fullNode.data);
       setPreviewUrl(url);
-      setPreviewNode(fullNode);
+      setPreviewNode({...fullNode, mimeType: getMimeType(fullNode.name, fullNode.mimeType)});
       setAiDescription(null);
     }
   };
@@ -94,6 +96,22 @@ export function Gallery() {
       console.error("Error generating description:", error);
       setAiDescription("Failed to generate description.");
       setIsGeneratingDescription(false);
+    }
+  };
+
+  const setAsWallpaper = () => {
+    if (previewNode && previewNode.mimeType?.startsWith('image/')) {
+      localStorage.setItem('wallpaperId', previewNode.id);
+      window.dispatchEvent(new CustomEvent('wallpaper-updated'));
+      
+      const btn = document.getElementById('wallpaper-btn');
+      if (btn) {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="text-green-400 text-xs font-medium">Set!</span>';
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+        }, 2000);
+      }
     }
   };
 
@@ -186,9 +204,24 @@ export function Gallery() {
 
             {/* Bottom Bar */}
             <div className="flex justify-between items-center p-6 pb-8 text-white bg-gradient-to-t from-black/50 to-transparent absolute bottom-0 left-0 right-0 z-10">
-              <button className="text-blue-400"><Share className="w-6 h-6" /></button>
-              <button className="text-white"><Heart className="w-6 h-6" /></button>
-              <button onClick={handleDelete} className="text-blue-400"><Trash2 className="w-6 h-6" /></button>
+              <button className="text-blue-400 flex flex-col items-center gap-1 hover:scale-110 active:scale-95 transition-all">
+                <Share className="w-6 h-6" />
+                <span className="text-[10px] font-medium opacity-80">Share</span>
+              </button>
+              {previewNode.mimeType?.startsWith('image/') && (
+                <button id="wallpaper-btn" onClick={setAsWallpaper} className="text-white flex flex-col items-center gap-1 hover:scale-110 active:scale-95 transition-all">
+                  <ImageIcon className="w-6 h-6" />
+                  <span className="text-[10px] font-medium opacity-80">Wallpaper</span>
+                </button>
+              )}
+              <button className="text-white flex flex-col items-center gap-1 hover:scale-110 active:scale-95 transition-all">
+                <Heart className="w-6 h-6" />
+                <span className="text-[10px] font-medium opacity-80">Favorite</span>
+              </button>
+              <button onClick={handleDelete} className="text-red-400 flex flex-col items-center gap-1 hover:scale-110 active:scale-95 transition-all">
+                <Trash2 className="w-6 h-6" />
+                <span className="text-[10px] font-medium opacity-80">Delete</span>
+              </button>
             </div>
           </motion.div>
         )}

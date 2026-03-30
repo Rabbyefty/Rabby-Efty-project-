@@ -32,33 +32,33 @@ const SettingsApp = lazy(() => import('./components/SettingsApp').then(m => ({ d
 type Tab = 'home' | 'apps' | 'image' | 'video' | 'voice' | 'vpn' | 'browser' | 'downloader' | 'fb-autolike' | 'build-apk' | 'arena-ai' | 'status' | 'card-gen' | 'temp-mail' | 'temp-number' | 'whatsapp' | 'file-manager' | 'gallery' | 'settings';
 
 const APPS = [
-  { id: 'image', name: 'Image', icon: ImageIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
-  { id: 'video', name: 'Video', icon: Video, color: 'text-purple-400', bg: 'bg-purple-500/20' },
-  { id: 'voice', name: 'Voice', icon: Mic, color: 'text-pink-400', bg: 'bg-pink-500/20' },
-  { id: 'vpn', name: 'VPN', icon: Shield, color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
-  { id: 'browser', name: 'Browser', icon: Globe, color: 'text-blue-400', bg: 'bg-blue-500/20' },
-  { id: 'downloader', name: 'Downloader', icon: DownloadCloud, color: 'text-cyan-400', bg: 'bg-cyan-500/20' },
-  { id: 'status', name: 'Status', icon: Activity, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
-  { id: 'card-gen', name: 'Card Gen', icon: CreditCard, color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
-  { id: 'arena-ai', name: 'Arena AI', icon: Swords, color: 'text-orange-400', bg: 'bg-orange-500/20' },
-  { id: 'fb-autolike', name: 'FB Liker', icon: ThumbsUp, color: 'text-blue-500', bg: 'bg-blue-600/20' },
-  { id: 'build-apk', name: 'APK Builder', icon: Smartphone, color: 'text-green-400', bg: 'bg-green-500/20' },
-  { id: 'temp-mail', name: 'Temp Mail', icon: Mail, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
-  { id: 'temp-number', name: 'Temp Number', icon: Phone, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
-  { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
-  { id: 'file-manager', name: 'Files', icon: Folder, color: 'text-blue-400', bg: 'bg-blue-500/20' },
-  { id: 'gallery', name: 'Photos', icon: ImageIcon, color: 'text-purple-400', bg: 'bg-purple-500/20' },
-  { id: 'settings', name: 'Settings', icon: Palette, color: 'text-zinc-400', bg: 'bg-zinc-500/20' },
+  { id: 'image', name: 'Image', icon: ImageIcon, color: 'text-white', bg: 'bg-gradient-to-br from-indigo-500 to-purple-600' },
+  { id: 'video', name: 'Video', icon: Video, color: 'text-white', bg: 'bg-gradient-to-br from-purple-500 to-pink-600' },
+  { id: 'voice', name: 'Voice', icon: Mic, color: 'text-white', bg: 'bg-gradient-to-br from-pink-500 to-rose-500' },
+  { id: 'vpn', name: 'VPN', icon: Shield, color: 'text-white', bg: 'bg-gradient-to-br from-emerald-400 to-teal-600' },
+  { id: 'browser', name: 'Browser', icon: Globe, color: 'text-white', bg: 'bg-gradient-to-br from-blue-400 to-blue-600' },
+  { id: 'downloader', name: 'Downloader', icon: DownloadCloud, color: 'text-white', bg: 'bg-gradient-to-br from-cyan-400 to-blue-500' },
+  { id: 'status', name: 'Status', icon: Activity, color: 'text-white', bg: 'bg-gradient-to-br from-indigo-400 to-blue-600' },
+  { id: 'card-gen', name: 'Card Gen', icon: CreditCard, color: 'text-white', bg: 'bg-gradient-to-br from-emerald-500 to-green-600' },
+  { id: 'arena-ai', name: 'Arena AI', icon: Swords, color: 'text-white', bg: 'bg-gradient-to-br from-orange-400 to-red-500' },
+  { id: 'fb-autolike', name: 'FB Liker', icon: ThumbsUp, color: 'text-white', bg: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
+  { id: 'build-apk', name: 'APK Builder', icon: Smartphone, color: 'text-white', bg: 'bg-gradient-to-br from-green-400 to-emerald-600' },
+  { id: 'temp-mail', name: 'Temp Mail', icon: Mail, color: 'text-white', bg: 'bg-gradient-to-br from-violet-500 to-purple-600' },
+  { id: 'temp-number', name: 'Temp Number', icon: Phone, color: 'text-white', bg: 'bg-gradient-to-br from-indigo-500 to-blue-600' },
+  { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-white', bg: 'bg-gradient-to-br from-green-500 to-emerald-600' },
+  { id: 'file-manager', name: 'Files', icon: Folder, color: 'text-white', bg: 'bg-gradient-to-br from-blue-400 to-indigo-500' },
+  { id: 'gallery', name: 'Photos', icon: ImageIcon, color: 'text-white', bg: 'bg-gradient-to-br from-purple-400 to-fuchsia-500' },
+  { id: 'settings', name: 'Settings', icon: Palette, color: 'text-white', bg: 'bg-gradient-to-br from-zinc-500 to-zinc-700' },
 ];
 
 const DOCK_APPS = [
-  { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
-  { id: 'browser', name: 'Browser', icon: Globe, color: 'text-blue-400', bg: 'bg-blue-500/20' },
-  { id: 'image', name: 'Image', icon: ImageIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
-  { id: 'video', name: 'Video', icon: Video, color: 'text-purple-400', bg: 'bg-purple-500/20' },
-  { id: 'vpn', name: 'VPN', icon: Shield, color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
-  { id: 'arena-ai', name: 'Arena AI', icon: Swords, color: 'text-orange-400', bg: 'bg-orange-500/20' },
-  { id: 'settings', name: 'Settings', icon: Palette, color: 'text-zinc-400', bg: 'bg-zinc-500/20' },
+  { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-white', bg: 'bg-gradient-to-br from-green-500 to-emerald-600' },
+  { id: 'browser', name: 'Browser', icon: Globe, color: 'text-white', bg: 'bg-gradient-to-br from-blue-400 to-blue-600' },
+  { id: 'image', name: 'Image', icon: ImageIcon, color: 'text-white', bg: 'bg-gradient-to-br from-indigo-500 to-purple-600' },
+  { id: 'video', name: 'Video', icon: Video, color: 'text-white', bg: 'bg-gradient-to-br from-purple-500 to-pink-600' },
+  { id: 'vpn', name: 'VPN', icon: Shield, color: 'text-white', bg: 'bg-gradient-to-br from-emerald-400 to-teal-600' },
+  { id: 'arena-ai', name: 'Arena AI', icon: Swords, color: 'text-white', bg: 'bg-gradient-to-br from-orange-400 to-red-500' },
+  { id: 'settings', name: 'Settings', icon: Palette, color: 'text-white', bg: 'bg-gradient-to-br from-zinc-500 to-zinc-700' },
 ];
 
 function AppContent() {
@@ -100,6 +100,7 @@ function AppContent() {
     const saved = localStorage.getItem('theme');
     return (saved as 'light' | 'dark') || 'dark';
   });
+  const [wallpaperUrl, setWallpaperUrl] = useState<string>("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop");
   
   const { iconShape } = useTheme();
 
@@ -111,6 +112,25 @@ function AppContent() {
       document.body.classList.remove('light');
     }
   }, [theme]);
+
+  useEffect(() => {
+    const loadWallpaper = async () => {
+      const wallpaperId = localStorage.getItem('wallpaperId');
+      if (wallpaperId) {
+        import('./lib/vfs').then(async ({ getNode }) => {
+          const node = await getNode(wallpaperId);
+          if (node && node.data) {
+            setWallpaperUrl(URL.createObjectURL(node.data));
+          }
+        });
+      }
+    };
+    loadWallpaper();
+
+    const handleWallpaperChange = () => loadWallpaper();
+    window.addEventListener('wallpaper-updated', handleWallpaperChange);
+    return () => window.removeEventListener('wallpaper-updated', handleWallpaperChange);
+  }, []);
 
   // Lock screen time
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -330,7 +350,8 @@ function AppContent() {
     return (
       <div className="flex flex-col h-full w-full overflow-hidden font-sans relative bg-black text-white">
         <div className="absolute inset-0 z-0">
-          <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop" alt="Wallpaper" className="w-full h-full object-cover opacity-80" />
+          <img src={wallpaperUrl} alt="Wallpaper" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/20 dark:bg-black/40" />
         </div>
         <div className="relative z-10 flex flex-col items-center pt-24 h-full">
           <div className="text-center mb-8">
@@ -377,7 +398,8 @@ function AppContent() {
     >
       {/* Wallpaper Background */}
       <div className="absolute inset-0 z-[-1] pointer-events-none">
-        <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop" alt="Wallpaper" className="w-full h-full object-cover opacity-40 dark:opacity-20" />
+        <img src={wallpaperUrl} alt="Wallpaper" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-black/10 dark:bg-black/40" />
       </div>
 
       {/* Control Center Swipe Area (Top Right) */}
@@ -653,7 +675,7 @@ function AppContent() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="h-full w-full"
+              className="h-full w-full will-change-transform"
             >
               <Home 
                 onNavigate={handleNavigate} 
@@ -667,7 +689,7 @@ function AppContent() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="h-full w-full"
+              className="h-full w-full will-change-transform"
             >
               <Apps onNavigate={handleNavigate} isVpnConnected={isVpnConnected} setIsVpnConnected={setIsVpnConnected} />
             </motion.div>
@@ -678,7 +700,7 @@ function AppContent() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="h-full w-full bg-black/40 backdrop-blur-xl overflow-hidden flex flex-col"
+              className="h-full w-full bg-black/40 backdrop-blur-xl overflow-hidden flex flex-col will-change-transform"
             >
               <div className="flex-1 overflow-y-auto relative">
                 <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-white/50" /></div>}>
@@ -735,7 +757,7 @@ function AppContent() {
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
-              className="max-w-[300px] w-full mx-auto glass-dock liquid-glass p-3 flex justify-around items-center pointer-events-auto ios-shadow rounded-[2rem] mb-4"
+              className="max-w-[300px] w-full mx-auto glass-dock liquid-glass p-3 flex justify-around items-center pointer-events-auto ios-shadow rounded-[2.5rem] mb-4 border border-white/30 shadow-[0_20px_40px_rgba(0,0,0,0.5),inset_0_1px_2px_rgba(255,255,255,0.5)]"
             >
               <button 
                 onClick={() => handleNavigate('home')}
@@ -799,9 +821,66 @@ function AppContent() {
   );
 }
 
+function CustomCursor() {
+  const cursorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const updatePosition = (e: MouseEvent) => {
+      if (cursorRef.current) {
+        const target = e.target as HTMLElement;
+        const isClickable = 
+          target.tagName.toLowerCase() === 'button' || 
+          target.tagName.toLowerCase() === 'a' || 
+          target.tagName.toLowerCase() === 'input' || 
+          target.tagName.toLowerCase() === 'textarea' || 
+          target.closest('button') || 
+          target.closest('a') ||
+          target.closest('.cursor-pointer');
+
+        const scale = isClickable ? 'scale(1.5)' : 'scale(1)';
+        const bg = isClickable ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)';
+
+        cursorRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%) ${scale}`;
+        cursorRef.current.style.background = bg;
+      }
+    };
+
+    window.addEventListener('mousemove', updatePosition);
+    return () => window.removeEventListener('mousemove', updatePosition);
+  }, []);
+
+  return (
+    <>
+      <style>{`
+        @media (min-width: 640px) {
+          * {
+            cursor: none !important;
+          }
+        }
+      `}</style>
+      <div
+        ref={cursorRef}
+        className="fixed top-0 left-0 w-8 h-8 rounded-full pointer-events-none z-[99999] hidden sm:flex items-center justify-center"
+        style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 0 20px rgba(255, 255, 255, 0.2), inset 0 0 10px rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          transform: 'translate3d(-100px, -100px, 0) translate(-50%, -50%)',
+          transition: 'transform 0.1s ease-out, background 0.2s ease-out',
+        }}
+      >
+        <div className="w-1.5 h-1.5 bg-white/60 rounded-full shadow-[0_0_5px_rgba(255,255,255,0.8)]" />
+      </div>
+    </>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider>
+      <CustomCursor />
       <div className="w-full h-[100dvh] bg-black sm:py-4 flex items-center justify-center overflow-hidden">
         <div className="w-full h-full sm:max-w-[440px] sm:max-h-[956px] sm:rounded-[3rem] sm:border-[8px] sm:border-zinc-900 overflow-hidden relative shadow-2xl bg-[#000]">
           <AppContent />

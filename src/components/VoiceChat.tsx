@@ -32,12 +32,18 @@ export function VoiceChat({ isVpnConnected }: VoiceChatProps) {
 
   useEffect(() => {
     const loadVoices = () => {
-      setVoices(window.speechSynthesis.getVoices());
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        setVoices(window.speechSynthesis.getVoices());
+      }
     };
     loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
     return () => {
-      window.speechSynthesis.onvoiceschanged = null;
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
     };
   }, []);
 
@@ -406,7 +412,7 @@ export function VoiceChat({ isVpnConnected }: VoiceChatProps) {
                       
                       {/* Speak Button */}
                       <button
-                        onClick={() => isSpeaking === i ? window.speechSynthesis.cancel() : speakText(item.text, i)}
+                        onClick={() => isSpeaking === i ? ('speechSynthesis' in window && window.speechSynthesis.cancel()) : speakText(item.text, i)}
                         className={`absolute -bottom-2 ${item.role === 'user' ? '-left-2' : '-right-2'} p-1.5 rounded-full bg-zinc-800 border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-zinc-700 shadow-lg z-10`}
                         title={isSpeaking === i ? "Stop speaking" : "Speak response"}
                       >
