@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, X, MessageSquare, Check, CheckCheck, Trash2, Volume2, StopCircle, Zap, VolumeX } from 'lucide-react';
+import { Send, Bot, User, Loader2, X, MessageSquare, Check, CheckCheck, Trash2, Volume2, StopCircle, Zap, VolumeX, Mic } from 'lucide-react';
 import { ChatMessage } from '@/src/types';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -78,6 +78,51 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
     scrollToBottom();
   }, [messages, isTyping, isOpen]);
 
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const originalInputRef = useRef('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+
+      recognitionRef.current.onresult = (event: any) => {
+        let currentTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        setInput(originalInputRef.current + (originalInputRef.current && currentTranscript ? ' ' : '') + currentTranscript);
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      if (recognitionRef.current) {
+        originalInputRef.current = input;
+        recognitionRef.current.start();
+        setIsListening(true);
+      } else {
+        alert("Speech recognition is not supported in this browser.");
+      }
+    }
+  };
+
   const [isRefining, setIsRefining] = useState(false);
 
   const refinePrompt = async () => {
@@ -90,7 +135,7 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Improve this chat prompt to be more clear, detailed, and effective for an AI assistant. Keep it concise but descriptive. Prompt: "${input}"`,
+        contents: `Enhance the following prompt to be more specific and action-oriented, focusing on clarity and conciseness. For example, instead of 'Add search', suggest 'Implement a search bar with real-time suggestions'. Prompt: "${input}"`,
       });
       if (response.text) {
         setInput(response.text.trim());
@@ -104,6 +149,10 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
     if (input.trim() && !isTyping) {
       onSendMessage(input.trim());
       setInput('');
@@ -368,6 +417,17 @@ export function Chatbot({ messages, onSendMessage, onClearChat, onStopGeneration
                   />
                 </div>
                 <div className="flex space-x-2 mb-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={toggleListening}
+                    disabled={isTyping || isRefining}
+                    className={`w-11 h-11 rounded-full shadow-sm border-none transition-all ${isListening ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-pulse' : 'bg-white/5 hover:bg-white/10 text-emerald-400'}`}
+                    title={isListening ? "Stop Listening" : "Start Voice Input"}
+                  >
+                    <Mic className="w-5 h-5" />
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"

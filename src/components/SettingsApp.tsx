@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useTheme } from '../ThemeContext';
-import { ArrowLeft, Check, Palette, Type, Square, Circle, Layout } from 'lucide-react';
+import { ArrowLeft, Check, Palette, Type, Square, Circle, Layout, Image as ImageIcon, Upload } from 'lucide-react';
 
 export function SettingsApp({ onBack }: { onBack: () => void }) {
   const { 
@@ -8,8 +8,34 @@ export function SettingsApp({ onBack }: { onBack: () => void }) {
     fontSize, setFontSize, 
     iconShape, setIconShape, 
     iconSize, setIconSize,
-    keyboardLayout, setKeyboardLayout
+    keyboardLayout, setKeyboardLayout,
+    wallpaperUrl, setWallpaperUrl
   } = useTheme();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const { addNode, generateId } = await import('../lib/vfs');
+      const id = generateId();
+      await addNode({
+        id,
+        name: file.name,
+        type: 'file',
+        parentId: 'root',
+        data: file,
+        mimeType: file.type,
+        size: file.size,
+        createdAt: Date.now(),
+        modifiedAt: Date.now()
+      });
+      
+      localStorage.setItem('wallpaperId', id);
+      setWallpaperUrl(URL.createObjectURL(file));
+      window.dispatchEvent(new CustomEvent('wallpaper-updated'));
+    }
+  };
 
   const colors = [
     { name: 'Indigo', value: '#6366f1' },
@@ -105,6 +131,64 @@ export function SettingsApp({ onBack }: { onBack: () => void }) {
                 {size}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Wallpaper */}
+        <div className="bg-[#2c2c2e] rounded-xl p-4">
+          <div className="flex items-center mb-4 text-white/80">
+            <ImageIcon className="w-5 h-5 mr-2" />
+            <h2 className="font-medium">Desktop Wallpaper</h2>
+          </div>
+          <div className="flex flex-col gap-3">
+            <div 
+              className="w-full h-32 rounded-lg bg-cover bg-center border border-white/10 relative overflow-hidden group"
+              style={{ backgroundImage: `url(${wallpaperUrl})` }}
+            >
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-full text-sm font-medium flex items-center transition-colors"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Change Wallpaper
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-white/50">Custom Image</span>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="text-sm text-[#0a84ff] hover:text-blue-400 font-medium px-3 py-1.5 bg-[#0a84ff]/10 rounded-lg transition-colors"
+              >
+                Upload
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                accept="image/*" 
+                className="hidden" 
+              />
+            </div>
+            <div className="flex gap-2 mt-2 overflow-x-auto pb-2 custom-scrollbar">
+              {[
+                "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1506744626753-eba7bc3535e7?q=80&w=2564&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=2564&auto=format&fit=crop",
+                "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2564&auto=format&fit=crop"
+              ].map((url, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    localStorage.removeItem('wallpaperId');
+                    setWallpaperUrl(url);
+                  }}
+                  className={`flex-shrink-0 w-16 h-16 rounded-lg bg-cover bg-center border-2 transition-all ${wallpaperUrl === url ? 'border-[#0a84ff] scale-105' : 'border-transparent hover:border-white/20'}`}
+                  style={{ backgroundImage: `url(${url})` }}
+                />
+              ))}
+            </div>
           </div>
         </div>
 

@@ -15,6 +15,8 @@ interface ThemeContextType {
   setIconSize: (size: IconSize) => void;
   keyboardLayout: string;
   setKeyboardLayout: (layout: string) => void;
+  wallpaperUrl: string;
+  setWallpaperUrl: (url: string) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -25,13 +27,25 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [iconShape, setIconShape] = useState<IconShape>(() => (localStorage.getItem('iconShape') as IconShape) || 'squircle');
   const [iconSize, setIconSize] = useState<IconSize>(() => (localStorage.getItem('iconSize') as IconSize) || 'medium');
   const [keyboardLayout, setKeyboardLayout] = useState(() => localStorage.getItem('keyboardLayout') || 'default');
+  const [wallpaperUrl, setWallpaperUrl] = useState(() => {
+    const url = localStorage.getItem('wallpaperUrl');
+    if (url && url.startsWith('blob:')) {
+      return 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop';
+    }
+    return url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop';
+  });
 
   useEffect(() => {
-    localStorage.setItem('primaryColor', primaryColor);
-    localStorage.setItem('fontSize', fontSize);
-    localStorage.setItem('iconShape', iconShape);
-    localStorage.setItem('iconSize', iconSize);
-    localStorage.setItem('keyboardLayout', keyboardLayout);
+    try {
+      localStorage.setItem('primaryColor', primaryColor);
+      localStorage.setItem('fontSize', fontSize);
+      localStorage.setItem('iconShape', iconShape);
+      localStorage.setItem('iconSize', iconSize);
+      localStorage.setItem('keyboardLayout', keyboardLayout);
+      localStorage.setItem('wallpaperUrl', wallpaperUrl);
+    } catch (e) {
+      console.warn("Failed to save theme settings to localStorage", e);
+    }
     
     // Apply font size to root
     const root = document.documentElement;
@@ -41,7 +55,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     // Apply primary color to root as a CSS variable
     root.style.setProperty('--primary-color', primaryColor);
-  }, [primaryColor, fontSize, iconShape, iconSize, keyboardLayout]);
+  }, [primaryColor, fontSize, iconShape, iconSize, keyboardLayout, wallpaperUrl]);
 
   return (
     <ThemeContext.Provider value={{ 
@@ -49,7 +63,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       fontSize, setFontSize, 
       iconShape, setIconShape, 
       iconSize, setIconSize,
-      keyboardLayout, setKeyboardLayout
+      keyboardLayout, setKeyboardLayout,
+      wallpaperUrl, setWallpaperUrl
     }}>
       {children}
     </ThemeContext.Provider>

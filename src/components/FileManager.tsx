@@ -533,10 +533,21 @@ export function FileManager() {
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
-                  onBlur={() => setIsCreatingFolder(false)}
+                  onBlur={(e) => {
+                    if (!e.relatedTarget || !(e.relatedTarget as HTMLElement).closest('.create-folder-btn')) {
+                      setIsCreatingFolder(false);
+                    }
+                  }}
                   placeholder="New Folder"
                   className="flex-1 bg-transparent focus:outline-none text-lg"
                 />
+                <button
+                  className="create-folder-btn px-4 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 active:scale-95 transition-all"
+                  onClick={handleCreateFolder}
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  Done
+                </button>
               </div>
             )}
 

@@ -10,6 +10,12 @@ const MODELS = [
   { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
   { id: 'gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash Lite' },
   { id: 'gemini-2.5-flash-preview', name: 'Gemini 2.5 Flash' },
+  { id: 'chatgpt-5-style', name: 'ChatGPT-5 (Simulated)' },
+  { id: 'grok-2-style', name: 'Grok 2.0 (Simulated)' },
+  { id: 'claude-3-5-style', name: 'Claude 3.5 Opus (Simulated)' },
+  { id: 'llama-3-style', name: 'Llama 3 (Simulated)' },
+  { id: 'mistral-large-style', name: 'Mistral Large (Simulated)' },
+  { id: 'cohere-command-style', name: 'Cohere Command R+ (Simulated)' },
 ];
 
 const IMAGE_STYLES = [
@@ -38,6 +44,30 @@ export function ArenaAi({ isVpnConnected }: ArenaAiProps) {
   const [result, setResult] = useState<ArenaResult | null>(null);
   const [uploadedImage, setUploadedImage] = useState<UploadedFile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isRefining, setIsRefining] = useState(false);
+
+  const refinePrompt = async () => {
+    if (!prompt.trim()) return;
+    setIsRefining(true);
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) throw new Error('API Key missing');
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Enhance the following prompt to be more specific and action-oriented, focusing on clarity and conciseness. For example, instead of 'Add search', suggest 'Implement a search bar with real-time suggestions'. Prompt: "${prompt}"`,
+      });
+      if (response.text) {
+        setPrompt(response.text.trim());
+      }
+    } catch (err) {
+      console.error('Failed to refine prompt:', err);
+    } finally {
+      setIsRefining(false);
+    }
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -193,21 +223,32 @@ export function ArenaAi({ isVpnConnected }: ArenaAiProps) {
               >
                 <Upload className="w-5 h-5" />
               </button>
-              <div className="relative flex-1">
-                <input 
-                  type="text"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder={mode === 'text' ? "Ask anything to compare models..." : "Describe an image to generate..."}
-                  className="w-full bg-zinc-100 border border-zinc-200 text-zinc-800 rounded-xl pl-4 pr-12 py-3 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
-                  disabled={isComparing}
-                />
-                <button 
-                  type="submit"
-                  disabled={(!prompt.trim() && !uploadedImage) || isComparing}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 transition-colors"
+              <div className="relative flex-1 flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input 
+                    type="text"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder={mode === 'text' ? "Ask anything to compare models..." : "Describe an image to generate..."}
+                    className="w-full bg-zinc-100 border border-zinc-200 text-zinc-800 rounded-xl pl-4 pr-12 py-3 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                    disabled={isComparing || isRefining}
+                  />
+                  <button 
+                    type="submit"
+                    disabled={(!prompt.trim() && !uploadedImage) || isComparing || isRefining}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 transition-colors"
+                  >
+                    {isComparing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={refinePrompt}
+                  disabled={!prompt.trim() || isComparing || isRefining}
+                  className={`p-3 bg-zinc-100 border border-zinc-200 text-amber-500 rounded-xl hover:bg-zinc-200 transition-colors ${isRefining ? 'animate-pulse' : ''}`}
+                  title="Enhance Prompt"
                 >
-                  {isComparing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {isRefining ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
                 </button>
               </div>
             </div>

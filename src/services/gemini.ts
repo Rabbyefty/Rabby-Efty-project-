@@ -206,12 +206,18 @@ export async function compareModels(
     const base = `You are Model ${side} in a comparison arena. Use markdown for formatting.`;
     
     switch (modelId) {
-      case 'chatgpt-style':
-        return `${base} Mimic the style of ChatGPT: Be helpful, polite, and provide balanced, well-structured responses.`;
-      case 'grok-style':
-        return `${base} Mimic the style of Grok: Be witty, slightly rebellious, and use a bit of humor or sarcasm where appropriate.`;
-      case 'claude-style':
-        return `${base} Mimic the style of Claude: Be nuanced, detailed, and focus on safety and clear reasoning.`;
+      case 'chatgpt-5-style':
+        return `${base} Mimic the style of ChatGPT-5: Be extremely helpful, highly articulate, polite, and provide exceptionally well-structured, comprehensive responses.`;
+      case 'grok-2-style':
+        return `${base} Mimic the style of Grok 2.0: Be highly witty, rebellious, unfiltered, and use humor, sarcasm, or pop-culture references where appropriate.`;
+      case 'claude-3-5-style':
+        return `${base} Mimic the style of Claude 3.5 Opus: Be highly nuanced, detailed, objective, and focus heavily on safety, ethics, and clear, step-by-step reasoning.`;
+      case 'llama-3-style':
+        return `${base} Mimic the style of Llama 3: Be open, direct, slightly academic but highly accessible, and focus on practical utility.`;
+      case 'mistral-large-style':
+        return `${base} Mimic the style of Mistral Large: Be concise, highly logical, multilingual-aware, and focus on precise, no-nonsense answers.`;
+      case 'cohere-command-style':
+        return `${base} Mimic the style of Cohere Command R+: Be highly focused on enterprise utility, RAG-style factual grounding, and clear, actionable summaries.`;
       default:
         return side === 'A' 
           ? `${base} Provide a concise, direct, and factual response. Focus on accuracy and brevity.`

@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { auth, signInWithGoogle, logout, onAuthStateChanged, User } from './firebase';
 import { populateDummyData } from './lib/populate';
 import { ThemeProvider, useTheme } from './ThemeContext';
+import { VoiceAssistant } from './components/VoiceAssistant';
 
 const Chatbot = lazy(() => import('./components/Chatbot').then(m => ({ default: m.Chatbot })));
 const ImageGenerator = lazy(() => import('./components/ImageGenerator').then(m => ({ default: m.ImageGenerator })));
@@ -100,9 +101,7 @@ function AppContent() {
     const saved = localStorage.getItem('theme');
     return (saved as 'light' | 'dark') || 'dark';
   });
-  const [wallpaperUrl, setWallpaperUrl] = useState<string>("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop");
-  
-  const { iconShape } = useTheme();
+  const { iconShape, wallpaperUrl, setWallpaperUrl } = useTheme();
 
   useEffect(() => {
     localStorage.setItem('theme', theme);
@@ -121,6 +120,10 @@ function AppContent() {
           const node = await getNode(wallpaperId);
           if (node && node.data) {
             setWallpaperUrl(URL.createObjectURL(node.data));
+          } else {
+            // Node deleted or not found, reset wallpaper
+            localStorage.removeItem('wallpaperId');
+            setWallpaperUrl("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop");
           }
         });
       }
@@ -817,6 +820,9 @@ function AppContent() {
           className={`w-36 h-1.5 rounded-full pointer-events-auto cursor-pointer hover:scale-110 transition-transform ${theme === 'light' ? 'bg-zinc-800/30 hover:bg-zinc-800/50' : 'bg-white/40 hover:bg-white/60'}`} 
         />
       </div>
+
+      {/* Global Voice Assistant */}
+      <VoiceAssistant />
     </div>
   );
 }

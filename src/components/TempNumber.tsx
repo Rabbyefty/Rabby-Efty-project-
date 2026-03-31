@@ -28,7 +28,8 @@ export function TempNumber({ isVpnConnected }: TempNumberProps) {
 
   const fetchHtmlWithFallback = async (url: string) => {
     const proxies = [
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      `https://api.codetabs.com/v1/proxy?quest=${url}`,
+      `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
       `https://corsproxy.io/?${encodeURIComponent(url)}`
     ];
     let lastError;
@@ -36,6 +37,12 @@ export function TempNumber({ isVpnConnected }: TempNumberProps) {
       try {
         const res = await fetch(proxy);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        if (proxy.includes('allorigins.win/get')) {
+          const data = await res.json();
+          return data.contents;
+        }
+        
         return await res.text();
       } catch (err) {
         lastError = err;

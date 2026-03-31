@@ -130,7 +130,7 @@ export function VideoGenerator({ isVpnConnected }: VideoGeneratorProps) {
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Expand this simple video prompt into a highly detailed, creative, and descriptive prompt for an AI video generator. Focus on camera movement, lighting, style, and composition. Keep it under 40 words. Prompt: "${prompt}"`,
+        contents: `Enhance the following prompt to be more specific and action-oriented, focusing on clarity and conciseness. For example, instead of 'Add search', suggest 'Implement a search bar with real-time suggestions'. Prompt: "${prompt}"`,
       });
       if (response.text) {
         setPrompt(response.text.trim());
