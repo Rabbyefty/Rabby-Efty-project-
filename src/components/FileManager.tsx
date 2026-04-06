@@ -23,6 +23,7 @@ export function FileManager() {
   const [activeTab, setActiveTab] = useState<'browse' | 'recents'>('browse');
   const [uploadingFiles, setUploadingFiles] = useState<{id: string, name: string, progress: number, mimeType: string}[]>([]);
   const [needsPermission, setNeedsPermission] = useState(false);
+  const [movingNode, setMovingNode] = useState<VFSNode | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -321,6 +322,36 @@ export function FileManager() {
     }
   };
 
+  const handleMove = async () => {
+    if (!movingNode) return;
+    
+    if (movingNode.parentId === currentFolderId) {
+      alert("File is already in this folder.");
+      setMovingNode(null);
+      return;
+    }
+    
+    if (movingNode.id === currentFolderId) {
+      alert("Cannot move a folder into itself.");
+      return;
+    }
+
+    if (movingNode.handle) {
+      alert("Moving synced device files is not supported yet.");
+      setMovingNode(null);
+      return;
+    }
+
+    const node = await getNode(movingNode.id);
+    if (node) {
+      node.parentId = currentFolderId;
+      node.modifiedAt = Date.now();
+      await addNode(node);
+      setMovingNode(null);
+      loadNodes();
+    }
+  };
+
   const handleShare = async (node: VFSNode) => {
     try {
       let file: File | undefined;
@@ -615,6 +646,16 @@ export function FileManager() {
                       <Edit2 className="w-4 h-4" /> Rename
                     </button>
                     <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMovingNode(node);
+                        setSelectedNode(null);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 border-b border-black/5 dark:border-white/10"
+                    >
+                      <Folder className="w-4 h-4" /> Move
+                    </button>
+                    <button 
                       onClick={() => handleDelete(node.id)}
                       className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 text-red-500"
                     >
@@ -725,6 +766,16 @@ export function FileManager() {
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
+                        setMovingNode(node);
+                        setSelectedNode(null);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 border-b border-black/5 dark:border-white/10"
+                    >
+                      <Folder className="w-4 h-4" /> Move
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
                         handleDelete(node.id);
                       }}
                       className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 text-red-500"
@@ -764,6 +815,29 @@ export function FileManager() {
           </>
         )}
       </div>
+
+      {/* Moving Banner */}
+      {movingNode && (
+        <div className="bg-blue-500 text-white p-3 flex items-center justify-between shadow-lg z-20">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <span className="text-sm truncate">Moving: {movingNode.name}</span>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button 
+              onClick={() => setMovingNode(null)}
+              className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleMove}
+              className="px-3 py-1.5 bg-white text-blue-500 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors shadow-sm"
+            >
+              Move Here
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-t border-black/5 dark:border-white/10 flex justify-around items-center p-2 pb-safe">
